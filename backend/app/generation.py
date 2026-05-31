@@ -3,6 +3,12 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from app.persistence import (
+    PostgresGenerationJobRepository,
+    RedisGenerationQueuePublisher,
+)
+from app.settings import Settings
+
 
 class GenerationRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=2000)
@@ -120,4 +126,18 @@ def create_generation_service() -> GenerationService:
         StubComfySubmissionGateway(),
         StubGenerationJobRepository(),
         StubGenerationQueuePublisher(),
+    )
+
+
+def create_generation_service_with_clients(
+    settings: Settings,
+    redis_client,
+) -> GenerationService:
+    return GenerationService(
+        StubComfySubmissionGateway(),
+        PostgresGenerationJobRepository(settings),
+        RedisGenerationQueuePublisher(
+            redis_client,
+            settings.generation_queue_key,
+        ),
     )

@@ -1,22 +1,28 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.clients import create_redis_client
 from app.generation import (
     GenerationAccepted,
     GenerationRequest,
-    create_generation_service,
+    create_generation_service_with_clients,
 )
 from app.health import collect_dependency_health
 from app.settings import get_settings
 
 
+settings = get_settings()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    settings = get_settings()
     app.state.redis = create_redis_client(settings)
-    app.state.generation_service = create_generation_service()
+    app.state.generation_service = create_generation_service_with_clients(
+        settings,
+        app.state.redis,
+    )
 
     yield
 
@@ -24,11 +30,17 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="modal-img", version="0.1.0", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.frontend_origin],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")
 async def health(request: Request) -> dict[str, object]:
-    settings = get_settings()
     dependencies = await collect_dependency_health(
         request.app.state.redis,
         settings,

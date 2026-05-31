@@ -1,6 +1,5 @@
 import os
 from functools import lru_cache
-from typing import Literal
 
 from pydantic import BaseModel
 
@@ -11,8 +10,8 @@ class Settings(BaseModel):
     postgres_dsn: str = (
         "postgresql://modal_img:modal_img@127.0.0.1:5432/modal_img"
     )
+    generation_queue_key: str = "modal-img:generation-jobs"
     frontend_origin: str = "http://127.0.0.1:4173"
-    frontend_mode: Literal["static", "dev"] = "static"
 
 
 def load_settings_from_env() -> Settings:
@@ -23,10 +22,13 @@ def load_settings_from_env() -> Settings:
             "MODAL_IMG_POSTGRES_DSN",
             "postgresql://modal_img:modal_img@127.0.0.1:5432/modal_img",
         ),
+        generation_queue_key=os.getenv(
+            "MODAL_IMG_GENERATION_QUEUE_KEY",
+            "modal-img:generation-jobs",
+        ),
         frontend_origin=os.getenv(
             "MODAL_IMG_FRONTEND_ORIGIN", "http://127.0.0.1:4173"
         ),
-        frontend_mode=os.getenv("MODAL_IMG_FRONTEND_MODE", "static"),
     )
 
 

@@ -12,6 +12,7 @@
 - Redis / PostgreSQL の接続ファクトリと依存ヘルスチェックを提供する
 - ComfyUI 連携の API 入口と workflow 境界を提供する
 - ジョブ永続化の repository / queue publisher 境界を提供する
+- PostgreSQL job insert と Redis 通知の実クライアントを提供する
 
 ## ディレクトリ構成
 
@@ -36,14 +37,15 @@ backend 設定は backend/.env.example の環境変数名に合わせる。
 - MODAL_IMG_APP_ENV: 実行環境名
 - MODAL_IMG_REDIS_URL: Redis 接続先
 - MODAL_IMG_POSTGRES_DSN: PostgreSQL 接続先
+- MODAL_IMG_GENERATION_QUEUE_KEY: Redis のジョブ通知キュー名
 - MODAL_IMG_FRONTEND_ORIGIN: frontend の公開 origin
-- MODAL_IMG_FRONTEND_MODE: lightweight 環境では static を使う
 
 health endpoint は Redis の `PING` と PostgreSQL の `SELECT 1` を実行し、依存状態を返す。
 ローカルで依存サービスが起動していない場合は `degraded` を返す前提とする。
 
 生成 API の最小入口は `POST /v1/generations` とし、現在は workflow 境界を固定するため stub gateway を使う。
-永続化は PostgreSQL を正本、Redis を通知経路として扱う方針で、現在は interface と stub 実装まで入っている。
+永続化は PostgreSQL を正本、Redis を通知経路として扱う方針で、現在は job insert と Redis queue push まで実装している。
+backend は `MODAL_IMG_FRONTEND_ORIGIN` を CORS 許可 origin として使う。
 
 ### frontend
 

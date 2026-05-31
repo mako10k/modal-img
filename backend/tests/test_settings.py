@@ -5,8 +5,8 @@ def test_settings_defaults(monkeypatch) -> None:
     monkeypatch.delenv("MODAL_IMG_APP_ENV", raising=False)
     monkeypatch.delenv("MODAL_IMG_REDIS_URL", raising=False)
     monkeypatch.delenv("MODAL_IMG_POSTGRES_DSN", raising=False)
+    monkeypatch.delenv("MODAL_IMG_GENERATION_QUEUE_KEY", raising=False)
     monkeypatch.delenv("MODAL_IMG_FRONTEND_ORIGIN", raising=False)
-    monkeypatch.delenv("MODAL_IMG_FRONTEND_MODE", raising=False)
 
     settings = load_settings_from_env()
 
@@ -16,8 +16,8 @@ def test_settings_defaults(monkeypatch) -> None:
         settings.postgres_dsn
         == "postgresql://modal_img:modal_img@127.0.0.1:5432/modal_img"
     )
+    assert settings.generation_queue_key == "modal-img:generation-jobs"
     assert settings.frontend_origin == "http://127.0.0.1:4173"
-    assert settings.frontend_mode == "static"
 
 
 def test_settings_read_env_overrides(monkeypatch) -> None:
@@ -27,8 +27,14 @@ def test_settings_read_env_overrides(monkeypatch) -> None:
         "MODAL_IMG_POSTGRES_DSN",
         "postgresql://worker:secret@postgres.internal:5433/modal_img_test",
     )
-    monkeypatch.setenv("MODAL_IMG_FRONTEND_ORIGIN", "http://frontend.internal:8080")
-    monkeypatch.setenv("MODAL_IMG_FRONTEND_MODE", "dev")
+    monkeypatch.setenv(
+        "MODAL_IMG_GENERATION_QUEUE_KEY",
+        "modal-img:test-generation-jobs",
+    )
+    monkeypatch.setenv(
+        "MODAL_IMG_FRONTEND_ORIGIN",
+        "http://frontend.internal:8080",
+    )
 
     settings = load_settings_from_env()
 
@@ -38,8 +44,8 @@ def test_settings_read_env_overrides(monkeypatch) -> None:
         settings.postgres_dsn
         == "postgresql://worker:secret@postgres.internal:5433/modal_img_test"
     )
+    assert settings.generation_queue_key == "modal-img:test-generation-jobs"
     assert settings.frontend_origin == "http://frontend.internal:8080"
-    assert settings.frontend_mode == "dev"
 
 
 def test_get_settings_is_cached() -> None:

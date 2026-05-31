@@ -29,7 +29,12 @@
   - 範囲: PostgreSQL を正本、Redis を通知経路とする責務分離、保存項目、service の呼び出し順序
   - 完了条件: 設計文書と generation service の persistence 境界が一致する
 
-- [ ] PostgreSQL への job insert と Redis 通知の実装を追加する
+- [x] PostgreSQL への job insert と Redis 通知の実装を追加する
   - 目的: persistence 境界を実クライアントへ置き換え、生成 API から実際に保存と通知を行う
   - 範囲: repository 実装、queue publisher 実装、接続エラー時の扱い、テスト
   - 完了条件: generation API が実クライアントを通じて保存と通知を行う
+
+- [ ] ComfyUI 実クライアントを gateway へ接続する
+  - 目的: stub gateway を実際の ComfyUI 呼び出しへ置き換え、生成依頼を外部実行系へ渡す
+  - 範囲: gateway 実装、接続設定、失敗時の扱い、テスト
+  - 完了条件: generation API が workflow を ComfyUI へ送信できる

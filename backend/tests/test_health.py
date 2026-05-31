@@ -5,7 +5,10 @@ from app.settings import get_settings
 
 
 def test_health_returns_ok(monkeypatch) -> None:
-    async def fake_collect_dependency_health(_redis_client, _settings) -> dict[str, str]:
+    async def fake_collect_dependency_health(
+        _redis_client,
+        _settings,
+    ) -> dict[str, str]:
         return {"redis": "ok", "postgres": "ok"}
 
     monkeypatch.setattr(
@@ -27,7 +30,10 @@ def test_health_returns_ok(monkeypatch) -> None:
 
 
 def test_health_returns_degraded(monkeypatch) -> None:
-    async def fake_collect_dependency_health(_redis_client, _settings) -> dict[str, str]:
+    async def fake_collect_dependency_health(
+        _redis_client,
+        _settings,
+    ) -> dict[str, str]:
         return {"redis": "error:ConnectionError", "postgres": "ok"}
 
     monkeypatch.setattr(

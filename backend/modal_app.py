@@ -4,7 +4,9 @@ from app.main import app as fastapi_app
 
 
 image = modal.Image.debian_slim(python_version="3.12").pip_install(
-    "fastapi>=0.115.12,<0.116"
+    "fastapi>=0.115.12,<0.116",
+    "psycopg[binary]>=3.2.9,<3.3",
+    "redis>=5.2,<5.3",
 )
 modal_app = modal.App("modal-img-api")
 

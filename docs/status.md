@@ -10,6 +10,8 @@
 - Redis / PostgreSQL の接続ファクトリと依存ヘルスチェックを追加済み
 - ComfyUI 連携の設計文書と生成 API 入口を追加済み
 - 生成ジョブ永続化の方針文書と persistence 境界を追加済み
+- PostgreSQL job insert と Redis queue push の実装を追加済み
+- コードレビュー運用を custom review agent 前提で定義済み
 
 ## 完了した内容
 
@@ -36,12 +38,17 @@
 - 永続化方針文書を追加
 - generation service に repository / queue publisher 境界を追加
 - 生成ジョブ保存と通知のテストを追加
+- PostgreSQL repository 実装を追加
+- Redis queue publisher 実装を追加
+- generation service を実クライアントで配線
+- review workflow を AGENT.md と custom review agent に追加
 
 ## 残課題
 
 - 画像生成ジョブの永続化と状態管理を設計する
-- Redis / PostgreSQL の接続をジョブ実行経路へ組み込む
+- ComfyUI 実クライアントを gateway へ組み込む
+- ジョブ状態取得 API と状態遷移を追加する
 
 ## 次回作業候補
 
-- PostgreSQL への job insert と Redis への通知送信を実クライアントで実装する
+- ComfyUI 実クライアントを gateway に接続し、失敗時の状態遷移を定義する

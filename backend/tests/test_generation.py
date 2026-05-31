@@ -58,8 +58,8 @@ def test_create_generation_endpoint_uses_generation_service(
 
     monkeypatch.setattr(
         main_module,
-        "create_generation_service",
-        lambda: FakeGenerationService(),
+        "create_generation_service_with_clients",
+        lambda _settings, _redis_client: FakeGenerationService(),
     )
 
     with TestClient(main_module.app) as client:
