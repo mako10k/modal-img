@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "modal-img-backend"
+version = "0.1.0"
+description = "Minimal backend scaffold for modal-img"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115.12,<0.116",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.28.1,<0.29",
+  "pytest>=8.3.5,<8.4",
+]
+modal = [
+  "modal>=1.0,<2.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
