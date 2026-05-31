@@ -22,6 +22,7 @@
 - 生成実行責務の方向性が drift しており、Modal 正本へ戻す是正が最優先
 - Modal worker へ workflow を `spawn` し、UI で `execution_id` を確認できる MVP を追加済み
 - Modal worker の GPU text-to-image 実行、job status API、preview 表示まで通るデモ経路を追加済み
+- MVP を go / no-go 判断デモとして扱い、合意形成と事実優先報告を強化するよう AGENT.md を更新済み
 
 ## 完了した内容
 
@@ -78,6 +79,7 @@
 - ローカル backend から live Modal worker を叩き、`completed` と preview 取得まで確認した
 - `queue_publish_failed` と `queue_state_update_failed` でも execution_id があれば UI から追跡継続するようにした
 - GPU デモ worker の入力制約を width / height 512-1024 かつ 64 の倍数、steps 1-4 として API / UI / README に明示した
+- AGENT.md に、単なる GPU 成立を MVP とみなさないこと、仮説を確定事項として扱わないこと、ComfyUI / Stable Diffusion 風 UI への drift を避けることを追記した
 
 ## 残課題
 
