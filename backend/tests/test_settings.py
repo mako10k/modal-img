@@ -3,6 +3,12 @@ from app.settings import get_settings, load_settings_from_env
 
 def test_settings_defaults(monkeypatch) -> None:
     monkeypatch.delenv("MODAL_IMG_APP_ENV", raising=False)
+    monkeypatch.delenv("MODAL_IMG_MODAL_APP_NAME", raising=False)
+    monkeypatch.delenv(
+        "MODAL_IMG_MODAL_TEXT_TO_IMAGE_FUNCTION_NAME",
+        raising=False,
+    )
+    monkeypatch.delenv("MODAL_IMG_MODAL_ENVIRONMENT_NAME", raising=False)
     monkeypatch.delenv("MODAL_IMG_COMFYUI_BASE_URL", raising=False)
     monkeypatch.delenv("MODAL_IMG_COMFYUI_TIMEOUT_SECONDS", raising=False)
     monkeypatch.delenv(
@@ -28,6 +34,9 @@ def test_settings_defaults(monkeypatch) -> None:
     settings = load_settings_from_env()
 
     assert settings.app_env == "development"
+    assert settings.modal_app_name == "modal-img-execution"
+    assert settings.modal_text_to_image_function_name == "submit_text_to_image"
+    assert settings.modal_environment_name is None
     assert settings.comfyui_base_url == "http://127.0.0.1:8188"
     assert settings.comfyui_timeout_seconds == 30.0
     assert settings.comfyui_health_timeout_seconds == 2.0
@@ -47,6 +56,12 @@ def test_settings_defaults(monkeypatch) -> None:
 
 def test_settings_read_env_overrides(monkeypatch) -> None:
     monkeypatch.setenv("MODAL_IMG_APP_ENV", "test")
+    monkeypatch.setenv("MODAL_IMG_MODAL_APP_NAME", "modal-img-execution-test")
+    monkeypatch.setenv(
+        "MODAL_IMG_MODAL_TEXT_TO_IMAGE_FUNCTION_NAME",
+        "submit_text_to_image_test",
+    )
+    monkeypatch.setenv("MODAL_IMG_MODAL_ENVIRONMENT_NAME", "dev")
     monkeypatch.setenv(
         "MODAL_IMG_COMFYUI_BASE_URL",
         "http://comfyui.internal:8188",
@@ -81,6 +96,11 @@ def test_settings_read_env_overrides(monkeypatch) -> None:
     settings = load_settings_from_env()
 
     assert settings.app_env == "test"
+    assert settings.modal_app_name == "modal-img-execution-test"
+    assert settings.modal_text_to_image_function_name == (
+        "submit_text_to_image_test"
+    )
+    assert settings.modal_environment_name == "dev"
     assert settings.comfyui_base_url == "http://comfyui.internal:8188"
     assert settings.comfyui_timeout_seconds == 45.5
     assert settings.comfyui_health_timeout_seconds == 3.5
@@ -96,6 +116,16 @@ def test_settings_read_env_overrides(monkeypatch) -> None:
     assert settings.redis_timeout_seconds == 4.5
     assert settings.generation_queue_key == "modal-img:test-generation-jobs"
     assert settings.frontend_origin == "http://frontend.internal:8080"
+
+
+def test_settings_treat_empty_modal_environment_as_unset(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("MODAL_IMG_MODAL_ENVIRONMENT_NAME", "   ")
+
+    settings = load_settings_from_env()
+
+    assert settings.modal_environment_name is None
 
 
 def test_get_settings_is_cached() -> None:

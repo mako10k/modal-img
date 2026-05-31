@@ -1,9 +1,9 @@
 import asyncio
 
-from app.comfyui import check_comfyui_health
 from redis.asyncio import Redis
 
 from app.clients import open_postgres_connection
+from app.modal_execution import check_modal_execution_health
 from app.settings import Settings
 
 
@@ -48,11 +48,11 @@ async def collect_dependency_health(
         health["postgres"] = f"error:{type(exc).__name__}"
 
     try:
-        health["comfyui"] = await asyncio.wait_for(
-            check_comfyui_health(settings),
+        health["modal"] = await asyncio.wait_for(
+            check_modal_execution_health(settings),
             timeout=timeout,
         )
     except Exception as exc:
-        health["comfyui"] = f"error:{type(exc).__name__}"
+        health["modal"] = f"error:{type(exc).__name__}"
 
     return health

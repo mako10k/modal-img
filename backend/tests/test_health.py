@@ -13,7 +13,7 @@ def test_health_returns_ok(monkeypatch) -> None:
         _redis_client,
         _settings,
     ) -> dict[str, str]:
-        return {"redis": "ok", "postgres": "ok", "comfyui": "ok"}
+        return {"redis": "ok", "postgres": "ok", "modal": "ok"}
 
     monkeypatch.setattr(
         main_module,
@@ -32,7 +32,7 @@ def test_health_returns_ok(monkeypatch) -> None:
         "dependencies": {
             "redis": "ok",
             "postgres": "ok",
-            "comfyui": "ok",
+            "modal": "ok",
         },
     }
 
@@ -45,7 +45,7 @@ def test_health_returns_degraded(monkeypatch) -> None:
         return {
             "redis": "error:ConnectionError",
             "postgres": "ok",
-            "comfyui": "ok",
+            "modal": "ok",
         }
 
     monkeypatch.setattr(
@@ -65,7 +65,7 @@ def test_health_returns_degraded(monkeypatch) -> None:
         "dependencies": {
             "redis": "error:ConnectionError",
             "postgres": "ok",
-            "comfyui": "ok",
+            "modal": "ok",
         },
     }
 

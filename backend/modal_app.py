@@ -10,6 +10,7 @@ image = modal.Image.debian_slim(python_version="3.12").pip_install(
     "redis>=5.2,<5.3",
 )
 modal_app = modal.App("modal-img-api")
+app = modal_app
 
 
 @modal_app.function(image=image)

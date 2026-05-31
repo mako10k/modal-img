@@ -24,7 +24,7 @@ describe("App", () => {
         dependencies: {
           redis: "ok",
           postgres: "error:TimeoutError",
-          comfyui: "error:TimeoutError",
+          modal: "error:TimeoutError",
         },
       }),
     }) as typeof fetch;
@@ -50,7 +50,7 @@ describe("App", () => {
           dependencies: {
             redis: "ok",
             postgres: "error:TimeoutError",
-            comfyui: "error:TimeoutError",
+            modal: "error:TimeoutError",
           },
         }),
       })
@@ -81,5 +81,41 @@ describe("App", () => {
     await waitFor(() => {
       expect(globalThis.fetch).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it("shows queued modal execution ids from the backend", async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: "ok",
+          environment: "development",
+          dependencies: {
+            redis: "ok",
+            postgres: "ok",
+            modal: "ok",
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          job_id: "job-2",
+          status: "queued",
+          execution_id: "fc-123",
+        }),
+      }) as typeof fetch;
+
+    render(<App />);
+
+    await screen.findByText("development");
+    fireEvent.click(
+      screen.getByRole("button", { name: "生成依頼を送信" }),
+    );
+
+    await screen.findByText("queued");
+    expect(screen.getByText("job-2")).toBeInTheDocument();
+    expect(screen.getByText("fc-123")).toBeInTheDocument();
   });
 });

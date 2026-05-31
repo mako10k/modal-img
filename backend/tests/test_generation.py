@@ -16,13 +16,13 @@ class FakeGateway:
 
     async def enqueue_workflow(self, workflow: dict[str, object]) -> str:
         self.workflow = workflow
-        return "comfy-workflow-1"
+        return "modal-execution-1"
 
 
 class FailingGateway:
     async def enqueue_workflow(self, workflow: dict[str, object]) -> str:
         _ = workflow
-        raise RuntimeError("ComfyUI response missing prompt_id")
+        raise RuntimeError("Modal function call missing object_id")
 
 
 class FakeRepository:
@@ -99,7 +99,7 @@ def test_generation_service_builds_text_to_image_workflow() -> None:
     response = run_submit(service)
 
     assert response.status == "queued"
-    assert response.comfyui_prompt_id == "comfy-workflow-1"
+    assert response.execution_id == "modal-execution-1"
     assert gateway.workflow == {
         "3": {
             "class_type": "KSampler",
@@ -143,9 +143,9 @@ def test_generation_service_builds_text_to_image_workflow() -> None:
     }
     assert repository.created.status == "submitting"
     assert repository.created.comfyui_prompt_id is None
-    assert repository.queued[1] == "comfy-workflow-1"
+    assert repository.queued[1] == "modal-execution-1"
     assert repository.queue_publish_failed is None
-    assert queue_publisher.record.comfyui_prompt_id == "comfy-workflow-1"
+    assert queue_publisher.record.comfyui_prompt_id == "modal-execution-1"
     assert queue_publisher.record.status == "queued"
 
 
@@ -156,9 +156,9 @@ def test_create_generation_endpoint_uses_generation_service(
         async def submit_text_to_image(self, request: GenerationRequest):
             assert request.prompt == "studio lighting"
             return {
-                "job_id": "job-123",
-                "status": "queued",
-                "comfyui_prompt_id": "workflow-123",
+                    "job_id": "job-123",
+                    "status": "queued",
+                    "execution_id": "fc-123",
             }
 
     monkeypatch.setattr(
@@ -182,7 +182,7 @@ def test_create_generation_endpoint_uses_generation_service(
     assert response.json() == {
         "job_id": "job-123",
         "status": "queued",
-        "comfyui_prompt_id": "workflow-123",
+        "execution_id": "fc-123",
     }
 
 
@@ -195,7 +195,7 @@ def test_create_generation_endpoint_returns_502_on_submission_failure(
             raise GenerationSubmissionError(
                 "job-500",
                 "submission_failed",
-                "RuntimeError: ComfyUI response missing prompt_id",
+                "RuntimeError: Modal function call missing object_id",
             )
 
     monkeypatch.setattr(
@@ -220,7 +220,7 @@ def test_create_generation_endpoint_returns_502_on_submission_failure(
         "detail": {
             "job_id": "job-500",
             "status": "submission_failed",
-            "message": "RuntimeError: ComfyUI response missing prompt_id",
+            "message": "RuntimeError: Modal function call missing object_id",
         }
     }
 
@@ -274,7 +274,7 @@ def test_create_generation_endpoint_returns_502_on_queue_publish_failure(
                 "job-501",
                 "queue_publish_failed",
                 "RuntimeError: redis push failed",
-                comfyui_prompt_id="workflow-123",
+                execution_id="fc-123",
             )
 
     monkeypatch.setattr(
@@ -300,7 +300,7 @@ def test_create_generation_endpoint_returns_502_on_queue_publish_failure(
             "job_id": "job-501",
             "status": "queue_publish_failed",
             "message": "RuntimeError: redis push failed",
-            "comfyui_prompt_id": "workflow-123",
+            "execution_id": "fc-123",
         }
     }
 
@@ -315,7 +315,7 @@ def test_create_generation_endpoint_returns_502_on_queue_state_update_failure(
                 "job-502",
                 "queue_state_update_failed",
                 "RuntimeError: postgres update failed",
-                comfyui_prompt_id="workflow-123",
+                execution_id="fc-123",
             )
 
     monkeypatch.setattr(
@@ -341,7 +341,7 @@ def test_create_generation_endpoint_returns_502_on_queue_state_update_failure(
             "job_id": "job-502",
             "status": "queue_state_update_failed",
             "message": "RuntimeError: postgres update failed",
-            "comfyui_prompt_id": "workflow-123",
+            "execution_id": "fc-123",
         }
     }
 
@@ -356,14 +356,16 @@ def test_generation_service_marks_submission_failed_without_queue_publish(
         run_submit(service)
     except GenerationSubmissionError as exc:
         assert exc.job_id == repository.created.job_id
-        assert str(exc) == "RuntimeError: ComfyUI response missing prompt_id"
+        assert str(exc) == (
+            "RuntimeError: Modal function call missing object_id"
+        )
     else:
         raise AssertionError("GenerationSubmissionError was not raised")
 
     assert repository.created.status == "submitting"
     assert repository.failed == (
         repository.created.job_id,
-        "RuntimeError: ComfyUI response missing prompt_id",
+        "RuntimeError: Modal function call missing object_id",
     )
     assert repository.queued is None
     assert repository.queue_publish_failed is None
@@ -406,13 +408,13 @@ def test_generation_service_marks_queue_publish_failed() -> None:
         assert exc.job_id == repository.created.job_id
         assert exc.status == "queue_publish_failed"
         assert str(exc) == "RuntimeError: redis push failed"
-        assert exc.comfyui_prompt_id == "comfy-workflow-1"
+        assert exc.execution_id == "modal-execution-1"
     else:
         raise AssertionError("GenerationSubmissionError was not raised")
 
     assert repository.queued == (
         repository.created.job_id,
-        "comfy-workflow-1",
+        "modal-execution-1",
     )
     assert repository.queue_publish_failed == (
         repository.created.job_id,
@@ -441,7 +443,7 @@ def test_generation_service_marks_queue_state_update_failed() -> None:
     assert repository.queued is None
     assert repository.queue_state_update_failed == (
         repository.created.job_id,
-        "comfy-workflow-1",
+        "modal-execution-1",
         "RuntimeError: postgres update failed",
     )
     assert repository.queue_publish_failed is None
@@ -463,7 +465,7 @@ def test_generation_service_reports_state_update_error_details() -> None:
     except GenerationSubmissionError as exc:
         assert exc.job_id == repository.created.job_id
         assert exc.status == "queue_state_update_failed"
-        assert exc.comfyui_prompt_id == "comfy-workflow-1"
+        assert exc.execution_id == "modal-execution-1"
         assert str(exc) == (
             "RuntimeError: postgres update failed; "
             "state_update_error=RuntimeError: postgres unavailable"

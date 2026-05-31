@@ -81,8 +81,8 @@ async def create_generation(
             "status": exc.status,
             "message": str(exc),
         }
-        if exc.comfyui_prompt_id is not None:
-            detail["comfyui_prompt_id"] = exc.comfyui_prompt_id
+        if exc.execution_id is not None:
+            detail["execution_id"] = exc.execution_id
 
         raise HTTPException(status_code=502, detail=detail) from exc
 

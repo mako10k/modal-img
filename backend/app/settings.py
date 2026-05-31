@@ -10,6 +10,8 @@ DEFAULT_COMFYUI_HEALTH_TIMEOUT_SECONDS = 2.0
 DEFAULT_DEPENDENCY_HEALTH_TIMEOUT_SECONDS = 2.0
 DEFAULT_POSTGRES_CONNECT_TIMEOUT_SECONDS = 5.0
 DEFAULT_REDIS_TIMEOUT_SECONDS = 5.0
+DEFAULT_MODAL_APP_NAME = "modal-img-execution"
+DEFAULT_MODAL_TEXT_TO_IMAGE_FUNCTION_NAME = "submit_text_to_image"
 DEFAULT_COMFYUI_CHECKPOINT = "sd_xl_base_1.0.safetensors"
 DEFAULT_COMFYUI_OUTPUT_PREFIX = "modal-img"
 
@@ -24,6 +26,11 @@ class Settings(BaseModel):
     dependency_health_timeout_seconds: float = (
         DEFAULT_DEPENDENCY_HEALTH_TIMEOUT_SECONDS
     )
+    modal_app_name: str = DEFAULT_MODAL_APP_NAME
+    modal_text_to_image_function_name: str = (
+        DEFAULT_MODAL_TEXT_TO_IMAGE_FUNCTION_NAME
+    )
+    modal_environment_name: str | None = None
     comfyui_checkpoint: str = DEFAULT_COMFYUI_CHECKPOINT
     comfyui_output_prefix: str = DEFAULT_COMFYUI_OUTPUT_PREFIX
     redis_url: str = "redis://127.0.0.1:6379/0"
@@ -36,6 +43,18 @@ class Settings(BaseModel):
     redis_timeout_seconds: float = DEFAULT_REDIS_TIMEOUT_SECONDS
     generation_queue_key: str = "modal-img:generation-jobs"
     frontend_origin: str = "http://127.0.0.1:43173"
+
+
+def _read_optional_env(name: str) -> str | None:
+    value = os.getenv(name)
+    if value is None:
+        return None
+
+    normalized = value.strip()
+    if not normalized:
+        return None
+
+    return normalized
 
 
 def load_settings_from_env() -> Settings:
@@ -62,6 +81,17 @@ def load_settings_from_env() -> Settings:
                 "MODAL_IMG_DEPENDENCY_HEALTH_TIMEOUT_SECONDS",
                 str(DEFAULT_DEPENDENCY_HEALTH_TIMEOUT_SECONDS),
             )
+        ),
+        modal_app_name=os.getenv(
+            "MODAL_IMG_MODAL_APP_NAME",
+            DEFAULT_MODAL_APP_NAME,
+        ),
+        modal_text_to_image_function_name=os.getenv(
+            "MODAL_IMG_MODAL_TEXT_TO_IMAGE_FUNCTION_NAME",
+            DEFAULT_MODAL_TEXT_TO_IMAGE_FUNCTION_NAME,
+        ),
+        modal_environment_name=_read_optional_env(
+            "MODAL_IMG_MODAL_ENVIRONMENT_NAME"
         ),
         comfyui_checkpoint=os.getenv(
             "MODAL_IMG_COMFYUI_CHECKPOINT",

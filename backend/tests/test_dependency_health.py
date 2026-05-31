@@ -21,27 +21,33 @@ def test_collect_dependency_health_reports_ok_for_both_backends(
     async def fake_postgres_check(_settings: Settings) -> str:
         return "ok"
 
-    async def fake_comfyui_health(_settings: Settings) -> str:
+    async def fake_modal_execution_health(_settings: Settings) -> str:
         return "ok"
 
     monkeypatch.setattr("app.health._check_postgres", fake_postgres_check)
-    monkeypatch.setattr("app.health.check_comfyui_health", fake_comfyui_health)
+    monkeypatch.setattr(
+        "app.health.check_modal_execution_health",
+        fake_modal_execution_health,
+    )
     health = asyncio.run(
         collect_dependency_health(FakeRedisClient(), Settings())
     )
 
-    assert health == {"redis": "ok", "postgres": "ok", "comfyui": "ok"}
+    assert health == {"redis": "ok", "postgres": "ok", "modal": "ok"}
 
 
 def test_collect_dependency_health_reports_failures(monkeypatch) -> None:
     async def fake_postgres_check(_settings: Settings) -> str:
         raise RuntimeError("postgres unavailable")
 
-    async def fake_comfyui_health(_settings: Settings) -> str:
-        raise RuntimeError("comfyui unavailable")
+    async def fake_modal_execution_health(_settings: Settings) -> str:
+        raise RuntimeError("modal unavailable")
 
     monkeypatch.setattr("app.health._check_postgres", fake_postgres_check)
-    monkeypatch.setattr("app.health.check_comfyui_health", fake_comfyui_health)
+    monkeypatch.setattr(
+        "app.health.check_modal_execution_health",
+        fake_modal_execution_health,
+    )
     health = asyncio.run(
         collect_dependency_health(
             FakeRedisClient(should_fail=True),
@@ -52,7 +58,7 @@ def test_collect_dependency_health_reports_failures(monkeypatch) -> None:
     assert health == {
         "redis": "error:ConnectionError",
         "postgres": "error:RuntimeError",
-        "comfyui": "error:RuntimeError",
+        "modal": "error:RuntimeError",
     }
 
 
@@ -68,12 +74,15 @@ def test_collect_dependency_health_uses_configured_timeout(
     async def fake_postgres_check(_settings: Settings) -> str:
         return "ok"
 
-    async def fake_comfyui_health(_settings: Settings) -> str:
+    async def fake_modal_execution_health(_settings: Settings) -> str:
         return "ok"
 
     monkeypatch.setattr("app.health.asyncio.wait_for", fake_wait_for)
     monkeypatch.setattr("app.health._check_postgres", fake_postgres_check)
-    monkeypatch.setattr("app.health.check_comfyui_health", fake_comfyui_health)
+    monkeypatch.setattr(
+        "app.health.check_modal_execution_health",
+        fake_modal_execution_health,
+    )
     health = asyncio.run(
         collect_dependency_health(
             FakeRedisClient(),
@@ -81,5 +90,5 @@ def test_collect_dependency_health_uses_configured_timeout(
         )
     )
 
-    assert health == {"redis": "ok", "postgres": "ok", "comfyui": "ok"}
+    assert health == {"redis": "ok", "postgres": "ok", "modal": "ok"}
     assert timeouts == [1.5, 1.5, 1.5]

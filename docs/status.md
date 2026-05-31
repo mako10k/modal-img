@@ -20,6 +20,7 @@
 - PostgreSQL / Redis の接続 timeout を追加済み
 - frontend の health / submit UI テストを追加済み
 - 生成実行責務の方向性が drift しており、Modal 正本へ戻す是正が最優先
+- Modal worker へ workflow を `spawn` し、UI で `execution_id` を確認できる MVP を追加済み
 
 ## 完了した内容
 
@@ -54,11 +55,11 @@
 - ComfyUI prompt graph 生成を追加
 - `submitting -> queued / submission_failed / queue_publish_failed` の状態遷移を追加
 - gateway と失敗時 API 応答のテストを追加
-- 外部実行系の識別子を `comfyui_prompt_id` に統一
+- 旧 direct ComfyUI 実装では外部実行系の識別子を `comfyui_prompt_id` に統一
 - health endpoint に ComfyUI dependency check を追加
 - generation_jobs 初期化 SQL を追加
 - generation_jobs 既存テーブル向け upgrade SQL を追加
-- queued 更新失敗時も `comfyui_prompt_id` を保持する再整合経路を追加
+- 旧互換経路として queued 更新失敗時も `comfyui_prompt_id` を保持する再整合経路を追加
 - settings から workflow 配線されることを固定するテストを追加
 - frontend の接続先入力、health 表示、生成依頼フォームを追加
 - frontend の既定ポートを 43173 へ変更
@@ -66,10 +67,12 @@
 - dependency health timeout 設定を追加
 - PostgreSQL / Redis timeout 設定を追加
 - 生成実行責務の優先仕様を AGENT / README / 設計文書へ明記
+- Modal-backed generation MVP を追加し、health dependency を `modal` へ切り替え
+- 公開 API と UI の成功応答を `execution_id` 表示へ切り替え
+- Modal worker への enqueue-only MVP であることを README と UI に明記
 
 ## 残課題
 
-- 生成実行責務を Modal 正本へ戻し、backend 直結 ComfyUI 前提を解消する
 - ジョブ状態取得 API と状態遷移を追加する
 - Modal 実行完了後の結果取り込みへ置き換える
 - 部分成功ジョブの再整合方針と重複送信回避を追加する
@@ -78,6 +81,5 @@
 
 ## 次回作業候補
 
-- 生成 API の実行委譲先を Modal adapter へ差し替える設計に更新し、settings / health / tests の raw ComfyUI 前提を縮退させる
 - ジョブ状態取得 API と Modal 実行完了後の状態反映を追加し、部分成功ジョブの再整合方針を固定する
 - `comfyui_prompt_id` を互換項目へ降格し、抽象実行 ID へ寄せる移行条件を決める

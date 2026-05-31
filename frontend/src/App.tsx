@@ -10,14 +10,14 @@ type HealthResponse = {
 type GenerationAccepted = {
   job_id: string;
   status: string;
-  comfyui_prompt_id: string;
+  execution_id: string;
 };
 
 type FailureDetail = {
   job_id?: string;
   status?: string;
   message?: string;
-  comfyui_prompt_id?: string;
+  execution_id?: string;
 };
 
 type ErrorResponse = {
@@ -161,15 +161,15 @@ function App() {
     <main className="page">
       <section className="hero">
         <p className="eyebrow">modal-img</p>
-        <h1>Quality-first image generation console</h1>
+        <h1>Quality-first execution queue console</h1>
         <p className="lead">
-          health 確認と生成依頼送信を、同じ画面からそのまま試せる最小 UI。
-          backend が生きていればこの画面だけで確認できます。
+          health 確認と Modal への enqueue を、同じ画面からそのまま試せる最小 UI。
+          いまの MVP は execution_id の可視化までを対象にしています。
         </p>
         <div className="hero-strip">
           <span>Backend: FastAPI / Modal</span>
           <span>Queue: Redis / PostgreSQL</span>
-          <span>Gateway: ComfyUI</span>
+          <span>Execution: Modal</span>
         </div>
       </section>
 
@@ -248,7 +248,7 @@ function App() {
           <div className="card-header">
             <div>
               <p className="section-label">Generate</p>
-              <h2>Text-to-image request</h2>
+              <h2>Text-to-image enqueue request</h2>
             </div>
           </div>
 
@@ -338,8 +338,8 @@ function App() {
                 <code>{submission.job_id}</code>
               </div>
               <div className="result-row">
-                <span>comfyui_prompt_id</span>
-                <code>{submission.comfyui_prompt_id}</code>
+                <span>execution_id</span>
+                <code>{submission.execution_id}</code>
               </div>
             </div>
           ) : null}
@@ -356,10 +356,10 @@ function App() {
                   <code>{submitError.job_id}</code>
                 </div>
               ) : null}
-              {submitError.comfyui_prompt_id ? (
+              {submitError.execution_id ? (
                 <div className="result-row">
-                  <span>comfyui_prompt_id</span>
-                  <code>{submitError.comfyui_prompt_id}</code>
+                  <span>execution_id</span>
+                  <code>{submitError.execution_id}</code>
                 </div>
               ) : null}
               <p className="message message-error">
@@ -370,7 +370,7 @@ function App() {
 
           {submission === null && submitError === null ? (
             <p className="message message-muted">
-              まず health を見て backend 接続を確認し、そのあと生成依頼を送信してください。
+              まず health を見て backend 接続を確認し、そのあと enqueue を送信して execution_id を確認してください。
             </p>
           ) : null}
         </article>

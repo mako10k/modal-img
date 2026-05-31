@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from app.comfyui import ComfyUISubmissionGateway
+from app.modal_execution import ModalSubmissionGateway
 from app.persistence import (
     PostgresGenerationJobRepository,
     RedisGenerationQueuePublisher,
@@ -26,7 +26,7 @@ class GenerationRequest(BaseModel):
 class GenerationAccepted(BaseModel):
     job_id: str
     status: str
-    comfyui_prompt_id: str
+    execution_id: str
 
 
 class GenerationJobRecord(BaseModel):
@@ -41,7 +41,7 @@ class GenerationJobRecord(BaseModel):
     steps: int
 
 
-class ComfySubmissionGateway(Protocol):
+class ExecutionGateway(Protocol):
     async def enqueue_workflow(self, workflow: dict[str, object]) -> str:
         pass
 
@@ -85,10 +85,10 @@ class GenerationQueuePublisher(Protocol):
         pass
 
 
-class StubComfySubmissionGateway:
+class StubExecutionGateway:
     async def enqueue_workflow(self, workflow: dict[str, object]) -> str:
         _ = workflow
-        return "stub-workflow"
+        return "stub-execution"
 
 
 class StubGenerationJobRepository:
@@ -200,18 +200,18 @@ class GenerationSubmissionError(Exception):
         job_id: str,
         status: str,
         message: str,
-        comfyui_prompt_id: str | None = None,
+        execution_id: str | None = None,
     ):
         super().__init__(message)
         self.job_id = job_id
         self.status = status
-        self.comfyui_prompt_id = comfyui_prompt_id
+        self.execution_id = execution_id
 
 
 class GenerationService:
     def __init__(
         self,
-        gateway: ComfySubmissionGateway,
+        gateway: ExecutionGateway,
         repository: GenerationJobRepository,
         queue_publisher: GenerationQueuePublisher,
         workflow_factory=build_text_to_image_workflow,
@@ -249,7 +249,7 @@ class GenerationService:
 
         try:
             workflow = self._workflow_factory(request)
-            comfyui_prompt_id = await self._gateway.enqueue_workflow(workflow)
+            execution_id = await self._gateway.enqueue_workflow(workflow)
         except Exception as exc:
             error_message = f"{type(exc).__name__}: {exc}"
             error_message = await self._record_failure_status(
@@ -264,24 +264,24 @@ class GenerationService:
             ) from exc
 
         try:
-            await self._repository.mark_job_queued(job_id, comfyui_prompt_id)
+            await self._repository.mark_job_queued(job_id, execution_id)
         except Exception as exc:
             error_message = f"{type(exc).__name__}: {exc}"
             error_message = await self._record_queue_state_update_failure(
                 job_id,
-                comfyui_prompt_id,
+                execution_id,
                 error_message,
             )
             raise GenerationSubmissionError(
                 job_id,
                 "queue_state_update_failed",
                 error_message,
-                comfyui_prompt_id=comfyui_prompt_id,
+                execution_id=execution_id,
             ) from exc
 
         queued_record = record.model_copy(
             update={
-                "comfyui_prompt_id": comfyui_prompt_id,
+                "comfyui_prompt_id": execution_id,
                 "status": "queued",
             }
         )
@@ -299,13 +299,13 @@ class GenerationService:
                 job_id,
                 "queue_publish_failed",
                 error_message,
-                comfyui_prompt_id=comfyui_prompt_id,
+                execution_id=execution_id,
             ) from exc
 
         return GenerationAccepted(
             job_id=job_id,
             status="queued",
-            comfyui_prompt_id=comfyui_prompt_id,
+            execution_id=execution_id,
         )
 
     async def _record_failure_status(
@@ -349,7 +349,7 @@ class GenerationService:
 
 def create_generation_service() -> GenerationService:
     return GenerationService(
-        StubComfySubmissionGateway(),
+        StubExecutionGateway(),
         StubGenerationJobRepository(),
         StubGenerationQueuePublisher(),
     )
@@ -360,7 +360,7 @@ def create_generation_service_with_clients(
     redis_client,
 ) -> GenerationService:
     return GenerationService(
-        ComfyUISubmissionGateway(settings),
+        ModalSubmissionGateway(settings),
         PostgresGenerationJobRepository(settings),
         RedisGenerationQueuePublisher(
             redis_client,

@@ -38,8 +38,9 @@
 cd backend
 python3.12 -m venv ../.venv
 . ../.venv/bin/activate
-pip install -e .[dev,modal]
+pip install -e .[dev]
 pytest
+modal deploy modal_worker.py
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
@@ -48,33 +49,38 @@ PostgreSQL を使う前に sql/init_generation_jobs.sql を適用して generati
 
 backend 設定は backend/.env.example の環境変数名に合わせる。
 
-ComfyUI 関連設定は、現行コードに残っている暫定実装を扱うための移行用設定であり、backend 正本の外部依存として固定する意図ではない。
+Modal 実行設定が生成受付の正本で、ComfyUI 関連設定は移行中の legacy 互換として残している。現行の Modal-backed 経路で backend の workflow payload 形状に直接効くのは checkpoint と output prefix だけで、base URL や timeout 系は旧 direct ComfyUI helper 用の残置設定になる。
 新規の生成系作業や運用手順は、raw ComfyUI 常駐を前提に組まず、Modal 実行境界へ寄せる移行前提で進める。
+ローカルで `POST /v1/generations` を成功させるには、uvicorn 起動前に `modal deploy modal_worker.py` で worker function を deploy しておく必要がある。
 
 - MODAL_IMG_APP_ENV: 実行環境名
+- MODAL_IMG_MODAL_APP_NAME: 生成実行を委譲する Modal app 名
+- MODAL_IMG_MODAL_TEXT_TO_IMAGE_FUNCTION_NAME: 生成実行を受ける Modal function 名
+- MODAL_IMG_MODAL_ENVIRONMENT_NAME: 必要なときだけ明示する Modal environment 名
 - MODAL_IMG_REDIS_URL: Redis 接続先
 - MODAL_IMG_POSTGRES_DSN: PostgreSQL 接続先
 - MODAL_IMG_POSTGRES_CONNECT_TIMEOUT_SECONDS: PostgreSQL 接続 timeout 秒
 - MODAL_IMG_REDIS_TIMEOUT_SECONDS: Redis 接続 / 読み書き timeout 秒
 - MODAL_IMG_GENERATION_QUEUE_KEY: Redis のジョブ通知キュー名
-- MODAL_IMG_COMFYUI_BASE_URL: 暫定実装でのみ使う ComfyUI API の base URL
-- MODAL_IMG_COMFYUI_TIMEOUT_SECONDS: 暫定実装でのみ使う ComfyUI API 呼び出し timeout 秒
-- MODAL_IMG_COMFYUI_HEALTH_TIMEOUT_SECONDS: 暫定実装でのみ使う ComfyUI health probe の timeout 秒
+- MODAL_IMG_COMFYUI_BASE_URL: 旧 direct ComfyUI helper 互換のために残している ComfyUI API の base URL
+- MODAL_IMG_COMFYUI_TIMEOUT_SECONDS: 旧 direct ComfyUI helper 互換のために残している timeout 秒
+- MODAL_IMG_COMFYUI_HEALTH_TIMEOUT_SECONDS: 旧 direct ComfyUI health 実装の名残として残る移行用 timeout 秒
 - MODAL_IMG_DEPENDENCY_HEALTH_TIMEOUT_SECONDS: health endpoint の各依存 probe に掛ける timeout 秒
-- MODAL_IMG_COMFYUI_CHECKPOINT: 暫定実装でのみ使う checkpoint 名
-- MODAL_IMG_COMFYUI_OUTPUT_PREFIX: 暫定実装でのみ使う ComfyUI 保存画像の prefix
+- MODAL_IMG_COMFYUI_CHECKPOINT: backend の workflow payload 互換でのみ使う checkpoint 名
+- MODAL_IMG_COMFYUI_OUTPUT_PREFIX: backend の workflow payload 互換でのみ使う保存 prefix
 - MODAL_IMG_FRONTEND_ORIGIN: frontend の公開 origin
 
-health endpoint は Redis の `PING`、PostgreSQL の `SELECT 1`、暫定実装では ComfyUI の `/system_stats` を実行し、依存状態を返す。
-この ComfyUI probe は移行対象であり、将来方針として維持する前提ではない。
+health endpoint は Redis の `PING`、PostgreSQL の `SELECT 1`、Modal 実行 function の hydrate による deploy 済み解決確認を行い、依存状態を返す。
 ローカルで依存サービスが起動していない場合は `degraded` を返す前提とする。
 
-生成 API の入口は `POST /v1/generations` で、現状実装では ComfyUI `/prompt` に workflow を送信しているが、これは Modal が生成実行責務を持つ最終形ではない。
+生成 API の入口は `POST /v1/generations` で、現状実装では Modal worker の `submit_text_to_image` function に workflow を `spawn` し、受け付け直後の `execution_id` を返す enqueue-only MVP になっている。
 永続化は PostgreSQL を正本、Redis を通知経路として扱い、状態は `submitting -> queued / submission_failed / queue_publish_failed` で管理する。
-queued への状態更新自体が失敗した場合は、job を `submitting` のまま残しつつ `comfyui_prompt_id` と error detail を保持して 502 を返す。
+queued への状態更新自体が失敗した場合は、job を `submitting` のまま残しつつ内部 execution 識別子と error detail を保持して 502 を返す。
 API の error detail では `persistence_failed` / `submission_failed` / `queue_publish_failed` / `queue_state_update_failed` を返し、`queue_state_update_failed` は永続化状態ではなく API 側の失敗分類として扱う。
-現在の暫定実装では外部実行系の識別子を `workflow_id` ではなく `comfyui_prompt_id` として扱うが、これも Modal 主導の抽象識別子へ寄せる移行対象である。
+API 応答では外部実行系の識別子を `execution_id` として返す。内部永続化では互換のため `comfyui_prompt_id` カラムを当面流用している。
 backend は `MODAL_IMG_FRONTEND_ORIGIN` を CORS 許可 origin として使う。
+
+この MVP はまだ画像生成完了や結果表示までは行わず、backend で組み立てた workflow を Modal worker へ enqueue し、`execution_id` を可視化するところまでを対象とする。現行 worker は workflow を受け付けて metadata を返す enqueue-only 実装であり、画像生成本体と結果保存は次段階の作業とする。
 
 ### frontend
 
