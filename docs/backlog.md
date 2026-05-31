@@ -24,4 +24,12 @@
 
 ## 後続タスク
 
-- [ ] 画像生成ジョブの永続化方針を決める
+- [x] 画像生成ジョブの永続化方針を決める
+  - 目的: 生成 API が受けた job を後続処理と参照系から追える形にする
+  - 範囲: PostgreSQL を正本、Redis を通知経路とする責務分離、保存項目、service の呼び出し順序
+  - 完了条件: 設計文書と generation service の persistence 境界が一致する
+
+- [ ] PostgreSQL への job insert と Redis 通知の実装を追加する
+  - 目的: persistence 境界を実クライアントへ置き換え、生成 API から実際に保存と通知を行う
+  - 範囲: repository 実装、queue publisher 実装、接続エラー時の扱い、テスト
+  - 完了条件: generation API が実クライアントを通じて保存と通知を行う

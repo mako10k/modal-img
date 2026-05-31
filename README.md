@@ -11,6 +11,7 @@
 - 軽量環境では frontend を静的配信前提で運用する
 - Redis / PostgreSQL の接続ファクトリと依存ヘルスチェックを提供する
 - ComfyUI 連携の API 入口と workflow 境界を提供する
+- ジョブ永続化の repository / queue publisher 境界を提供する
 
 ## ディレクトリ構成
 
@@ -42,6 +43,7 @@ health endpoint は Redis の `PING` と PostgreSQL の `SELECT 1` を実行し�
 ローカルで依存サービスが起動していない場合は `degraded` を返す前提とする。
 
 生成 API の最小入口は `POST /v1/generations` とし、現在は workflow 境界を固定するため stub gateway を使う。
+永続化は PostgreSQL を正本、Redis を通知経路として扱う方針で、現在は interface と stub 実装まで入っている。
 
 ### frontend
 

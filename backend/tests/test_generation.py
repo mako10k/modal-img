@@ -13,9 +13,21 @@ class FakeGateway:
         return "comfy-workflow-1"
 
 
+class FakeRepository:
+    async def create_job(self, record) -> None:
+        self.record = record
+
+
+class FakeQueuePublisher:
+    async def publish_job_requested(self, record) -> None:
+        self.record = record
+
+
 def test_generation_service_builds_text_to_image_workflow() -> None:
     gateway = FakeGateway()
-    service = GenerationService(gateway)
+    repository = FakeRepository()
+    queue_publisher = FakeQueuePublisher()
+    service = GenerationService(gateway, repository, queue_publisher)
 
     response = run_submit(service)
 
@@ -28,6 +40,8 @@ def test_generation_service_builds_text_to_image_workflow() -> None:
         "image": {"width": 768, "height": 1024},
         "sampling": {"steps": 40},
     }
+    assert repository.record.workflow_id == "comfy-workflow-1"
+    assert queue_publisher.record.workflow_id == "comfy-workflow-1"
 
 
 def test_create_generation_endpoint_uses_generation_service(

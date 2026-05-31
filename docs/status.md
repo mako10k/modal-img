@@ -9,6 +9,7 @@
 - frontend は軽量環境で静的配信前提の起動方針を採用
 - Redis / PostgreSQL の接続ファクトリと依存ヘルスチェックを追加済み
 - ComfyUI 連携の設計文書と生成 API 入口を追加済み
+- 生成ジョブ永続化の方針文書と persistence 境界を追加済み
 
 ## 完了した内容
 
@@ -32,13 +33,15 @@
 - `POST /v1/generations` の最小入口を追加
 - workflow builder と stub gateway を追加
 - 生成入口のテストを追加
+- 永続化方針文書を追加
+- generation service に repository / queue publisher 境界を追加
+- 生成ジョブ保存と通知のテストを追加
 
 ## 残課題
 
-- ComfyUI 連携の設計と最小実装を行う
 - 画像生成ジョブの永続化と状態管理を設計する
 - Redis / PostgreSQL の接続をジョブ実行経路へ組み込む
 
 ## 次回作業候補
 
-- 画像生成ジョブの永続化方針を決め、生成 API から PostgreSQL / Redis を利用する
+- PostgreSQL への job insert と Redis への通知送信を実クライアントで実装する
