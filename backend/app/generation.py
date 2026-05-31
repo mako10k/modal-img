@@ -18,9 +18,9 @@ from app.settings import (
 class GenerationRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=2000)
     negative_prompt: str | None = Field(default=None, max_length=2000)
-    width: int = Field(default=1024, ge=512, le=1024, multiple_of=64)
-    height: int = Field(default=1024, ge=512, le=1024, multiple_of=64)
-    steps: int = Field(default=4, ge=1, le=4)
+    width: int = Field(default=768, ge=512, le=1024, multiple_of=64)
+    height: int = Field(default=768, ge=512, le=1024, multiple_of=64)
+    steps: int = Field(default=24, ge=12, le=30)
 
 
 class GenerationAccepted(BaseModel):

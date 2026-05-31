@@ -131,6 +131,32 @@ describe("App", () => {
     expect(screen.getByAltText("Generated preview")).toBeInTheDocument();
   });
 
+  it("renders quality-first defaults in the generation form", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "ok",
+        environment: "development",
+        dependencies: {
+          redis: "ok",
+          postgres: "ok",
+          modal: "ok",
+        },
+      }),
+    }) as typeof fetch;
+
+    render(<App />);
+
+    await screen.findByText("development");
+    expect(screen.getByLabelText("Width")).toHaveValue(768);
+    expect(screen.getByLabelText("Height")).toHaveValue(768);
+    expect(screen.getByLabelText("Steps")).toHaveValue(24);
+    expect(screen.getByLabelText("Prompt")).toHaveValue(
+      "cinematic editorial portrait, natural skin texture, moody practical lighting, 85mm lens, shallow depth of field, highly detailed, photorealistic",
+    );
+    expect(screen.getByText(/steps は 12-30/)).toBeInTheDocument();
+  });
+
   it("keeps tracking queue publish failures that already spawned a job", async () => {
     globalThis.fetch = vi
       .fn()

@@ -45,11 +45,12 @@ const DEFAULT_API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 const INITIAL_FORM: GenerationForm = {
-  prompt: "high detail portrait, cinematic lighting, natural skin texture",
-  negativePrompt: "blurry, low contrast, malformed hands",
-  width: "1024",
-  height: "1024",
-  steps: "4",
+  prompt:
+    "cinematic editorial portrait, natural skin texture, moody practical lighting, 85mm lens, shallow depth of field, highly detailed, photorealistic",
+  negativePrompt: "blurry, waxy skin, deformed hands, extra fingers, low contrast",
+  width: "768",
+  height: "768",
+  steps: "24",
 };
 
 const TERMINAL_JOB_STATUSES = new Set([
@@ -401,8 +402,8 @@ function App() {
             <label className="field">
               <span>Steps</span>
               <input
-                min="1"
-                max="4"
+                min="12"
+                max="30"
                 name="steps"
                 onChange={handleFieldChange}
                 type="number"
@@ -417,7 +418,7 @@ function App() {
             </div>
 
             <p className="message message-muted field-full">
-              prompt は 2000 文字まで、width / height は 512-1024 かつ 64 の倍数、steps は 1-4 です。
+              prompt は 2000 文字まで、width / height は 512-1024 かつ 64 の倍数、steps は 12-30 です。
             </p>
           </form>
         </article>

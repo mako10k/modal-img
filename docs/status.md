@@ -23,6 +23,7 @@
 - Modal worker へ workflow を `spawn` し、UI で `execution_id` を確認できる MVP を追加済み
 - Modal worker の GPU text-to-image 実行、job status API、preview 表示まで通るデモ経路を追加済み
 - MVP を go / no-go 判断デモとして扱い、合意形成と事実優先報告を強化するよう AGENT.md を更新済み
+- Modal worker を `stabilityai/stable-diffusion-xl-base-1.0` と 768x768 / 24 steps の単発品質重視プロファイルへ更新済み
 
 ## 完了した内容
 
@@ -80,6 +81,7 @@
 - `queue_publish_failed` と `queue_state_update_failed` でも execution_id があれば UI から追跡継続するようにした
 - GPU デモ worker の入力制約を width / height 512-1024 かつ 64 の倍数、steps 1-4 として API / UI / README に明示した
 - AGENT.md に、単なる GPU 成立を MVP とみなさないこと、仮説を確定事項として扱わないこと、ComfyUI / Stable Diffusion 風 UI への drift を避けることを追記した
+- sd-turbo / 1-4 steps 前提をやめ、go / no-go 判断向けに SDXL base / 12-30 steps の品質寄り制約へ更新した
 
 ## 残課題
 
@@ -88,9 +90,11 @@
 - API failure detail と永続化状態の整理を継続する
 - 生成 preview を data URL ではなく永続 URL / object storage へ逃がす
 - 実運用モデル、解像度、推論時間の要件に合わせて worker の GPU / model / caching 方針を詰める
+- 現行 SDXL 単発デモの live 実行結果を確認し、継続判断に足る 1 枚の品質かどうかを見極める
 
 ## 次回作業候補
 
 - preview 保存を object storage 化し、結果参照契約を data URL 依存から外す
 - `comfyui_prompt_id` を互換項目へ降格し、抽象実行 ID へ寄せる移行条件を決める
 - 現行 GPU デモ worker を本番向けモデル選定とキャッシュ戦略へ置き換える
+- 固定 prompt の 1 枚で go / no-go を判断し、続行なら次にモデル改善へ進むか、停止なら別方向へ切り替える

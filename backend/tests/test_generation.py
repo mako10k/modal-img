@@ -169,7 +169,7 @@ def test_generation_service_builds_text_to_image_workflow() -> None:
             "class_type": "KSampler",
             "inputs": {
                 "seed": 0,
-                "steps": 4,
+                "steps": 24,
                 "cfg": 7.0,
                 "sampler_name": "dpmpp_2m",
                 "scheduler": "karras",
@@ -238,7 +238,7 @@ def test_create_generation_endpoint_uses_generation_service(
                 "prompt": "studio lighting",
                 "width": 1024,
                 "height": 1024,
-                "steps": 4,
+                "steps": 24,
             },
         )
 
@@ -334,7 +334,7 @@ def test_create_generation_endpoint_returns_502_on_submission_failure(
                 "prompt": "studio lighting",
                 "width": 1024,
                 "height": 1024,
-                "steps": 4,
+                "steps": 24,
             },
         )
 
@@ -373,7 +373,7 @@ def test_create_generation_endpoint_returns_502_on_persistence_failure(
                 "prompt": "studio lighting",
                 "width": 1024,
                 "height": 1024,
-                "steps": 4,
+                "steps": 24,
             },
         )
 
@@ -413,7 +413,7 @@ def test_create_generation_endpoint_returns_502_on_queue_publish_failure(
                 "prompt": "studio lighting",
                 "width": 1024,
                 "height": 1024,
-                "steps": 4,
+                "steps": 24,
             },
         )
 
@@ -454,7 +454,7 @@ def test_create_generation_endpoint_returns_502_on_queue_state_update_failure(
                 "prompt": "studio lighting",
                 "width": 1024,
                 "height": 1024,
-                "steps": 4,
+                "steps": 24,
             },
         )
 
@@ -478,7 +478,7 @@ def test_create_generation_endpoint_rejects_invalid_gpu_demo_limits(
                 "prompt": "studio lighting",
                 "width": 1000,
                 "height": 256,
-                "steps": 8,
+                "steps": 64,
             },
         )
 
@@ -493,7 +493,7 @@ def test_create_generation_endpoint_rejects_invalid_prompt_lengths() -> None:
                 "prompt": "",
                 "width": 512,
                 "height": 512,
-                "steps": 1,
+                "steps": 24,
             },
         )
         oversized_prompt = client.post(
@@ -502,7 +502,7 @@ def test_create_generation_endpoint_rejects_invalid_prompt_lengths() -> None:
                 "prompt": "x" * 2001,
                 "width": 512,
                 "height": 512,
-                "steps": 1,
+                "steps": 24,
             },
         )
         oversized_negative_prompt = client.post(
@@ -512,7 +512,7 @@ def test_create_generation_endpoint_rejects_invalid_prompt_lengths() -> None:
                 "negative_prompt": "x" * 2001,
                 "width": 512,
                 "height": 512,
-                "steps": 1,
+                "steps": 24,
             },
         )
 
@@ -745,6 +745,15 @@ def test_generation_service_reports_state_update_error_details() -> None:
     assert repository.queue_state_update_failed is None
 
 
+def test_generation_request_uses_quality_defaults() -> None:
+    request = GenerationRequest(prompt="studio lighting")
+
+    assert request.negative_prompt is None
+    assert request.width == 768
+    assert request.height == 768
+    assert request.steps == 24
+
+
 def test_create_generation_service_with_clients_uses_settings_for_workflow(
 ) -> None:
     settings = Settings(
@@ -760,7 +769,7 @@ def test_create_generation_service_with_clients_uses_settings_for_workflow(
             negative_prompt="blurry",
             width=1024,
             height=1024,
-            steps=4,
+            steps=24,
         )
     )
 
@@ -776,7 +785,7 @@ def run_submit(service: GenerationService):
         negative_prompt="blurry",
         width=768,
         height=1024,
-        steps=4,
+        steps=24,
     )
 
     return asyncio.run(service.submit_text_to_image(request))

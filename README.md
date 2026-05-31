@@ -82,9 +82,9 @@ backend は `MODAL_IMG_FRONTEND_ORIGIN` を CORS 許可 origin として使う�
 
 `GET /v1/generations/{job_id}` は execution_id から Modal function call の結果を取得し、完了時は preview 画像を PostgreSQL に保存して返す。
 
-現行 worker は Modal 上で GPU を使って `stabilityai/sd-turbo` による text-to-image 推論を行い、PNG data URL を返す。これは最終構成ではないが、GPU 実行、状態取得、結果表示の本線を通すための現行デモ実装である。
+現行 worker は Modal 上で GPU を使って `stabilityai/stable-diffusion-xl-base-1.0` による text-to-image 推論を行い、PNG data URL を返す。これは最終構成ではないが、go / no-go 判断に使える 1 枚の品質を優先するための現行デモ実装である。
 `prompt` は 1-2000 文字、`negative_prompt` は 0-2000 文字で受け付ける。
-現行の GPU デモ worker は `width` / `height` を 512-1024 かつ 64 の倍数、`steps` を 1-4 の範囲で受け付ける。
+現行の GPU デモ worker は `width` / `height` を 512-1024 かつ 64 の倍数、`steps` を 12-30 の範囲で受け付ける。既定値は 768x768 / 24 steps で、単なる高速性よりも 1 枚の説得力を優先する。
 
 ### frontend
 
