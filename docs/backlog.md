@@ -2,6 +2,11 @@
 
 ## 優先タスク
 
+- [ ] architecture / runtime / model の ADR を正本化する
+  - 目的: repo 外の会話起点の判断を失わず、誰が何を決めたかを追えるようにする
+  - 範囲: AGENT の ADR ルール、`docs/adr`、既存方針の転記、未確定事項の棚卸し
+  - 完了条件: 実行責務、engine 選定、MVP 評価軸の決定者と根拠が ADR で追える
+
 - [ ] 生成実行責務を Modal 正本へ戻す
   - 目的: 直近の drift で生じた backend 直結 ComfyUI 前提を止め、生成実行責務を Modal に戻す
   - 範囲: AGENT、README、設計文書、settings、health、generation service、テストの責務整理

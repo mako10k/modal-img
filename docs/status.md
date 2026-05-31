@@ -19,11 +19,12 @@
 - health endpoint の各依存 probe timeout を短縮済み
 - PostgreSQL / Redis の接続 timeout を追加済み
 - frontend の health / submit UI テストを追加済み
-- 生成実行責務の方向性が drift しており、Modal 正本へ戻す是正が最優先
+- 生成実行責務と MVP 評価軸の正本を `docs/adr` へ移しつつある
 - Modal worker へ workflow を `spawn` し、UI で `execution_id` を確認できる MVP を追加済み
 - Modal worker の GPU text-to-image 実行、job status API、preview 表示まで通るデモ経路を追加済み
 - MVP を go / no-go 判断デモとして扱い、合意形成と事実優先報告を強化するよう AGENT.md を更新済み
 - Modal worker を `stabilityai/stable-diffusion-xl-base-1.0` と 768x768 / 24 steps の単発品質重視プロファイルへ更新済み
+- ADR 運用を開始し、architecture / runtime / model 選定は `docs/adr` を正本とする方針へ更新中
 
 ## 完了した内容
 
@@ -82,6 +83,9 @@
 - GPU デモ worker の入力制約を width / height 512-1024 かつ 64 の倍数、steps 1-4 として API / UI / README に明示した
 - AGENT.md に、単なる GPU 成立を MVP とみなさないこと、仮説を確定事項として扱わないこと、ComfyUI / Stable Diffusion 風 UI への drift を避けることを追記した
 - sd-turbo / 1-4 steps 前提をやめ、go / no-go 判断向けに SDXL base / 12-30 steps の品質寄り制約へ更新した
+- repo 外会話で固まった前提が消失した場合に、エージェントが空白を実装判断で埋めないよう、決定権限と ADR ルールを AGENT.md に追記した
+- `FLEX` を含む生成 engine 選定は未確定事項として ADR 化し、現行 SDXL は暫定検証実装として扱うことを記録した
+- 実行責務と MVP 評価軸を ADR へ移し、status は進捗ログとして扱う方針を追加した
 
 ## 残課題
 
@@ -91,10 +95,11 @@
 - 生成 preview を data URL ではなく永続 URL / object storage へ逃がす
 - 実運用モデル、解像度、推論時間の要件に合わせて worker の GPU / model / caching 方針を詰める
 - 現行 SDXL 単発デモの live 実行結果を確認し、継続判断に足る 1 枚の品質かどうかを見極める
+- repo 外で合意されていた生成 engine 候補と評価軸を回収し、ADR 0002 を accepted に更新する
+- ADR 0002 が accepted になるまで、engine 選定前提の最適化や横展開を進めない
 
 ## 次回作業候補
 
 - preview 保存を object storage 化し、結果参照契約を data URL 依存から外す
 - `comfyui_prompt_id` を互換項目へ降格し、抽象実行 ID へ寄せる移行条件を決める
-- 現行 GPU デモ worker を本番向けモデル選定とキャッシュ戦略へ置き換える
-- 固定 prompt の 1 枚で go / no-go を判断し、続行なら次にモデル改善へ進むか、停止なら別方向へ切り替える
+- `FLEX` を含む候補、評価軸、決定者を整理して engine 選定 ADR を確定する
