@@ -34,7 +34,12 @@
   - 範囲: repository 実装、queue publisher 実装、接続エラー時の扱い、テスト
   - 完了条件: generation API が実クライアントを通じて保存と通知を行う
 
-- [ ] ComfyUI 実クライアントを gateway へ接続する
+- [x] ComfyUI 実クライアントを gateway へ接続する
   - 目的: stub gateway を実際の ComfyUI 呼び出しへ置き換え、生成依頼を外部実行系へ渡す
   - 範囲: gateway 実装、接続設定、失敗時の扱い、テスト
   - 完了条件: generation API が workflow を ComfyUI へ送信できる
+
+- [ ] ジョブ状態取得 API と結果反映を追加する
+  - 目的: 受け付けた job の進行状況と結果を参照できるようにする
+  - 範囲: PostgreSQL 読み出し、ComfyUI 完了結果の反映、状態取得 API、部分成功ジョブの再整合 / 重複送信回避、テスト
+  - 完了条件: job_id から状態を取得でき、完了時の結果反映方針と部分成功ジョブの回復方針が実装と一致する

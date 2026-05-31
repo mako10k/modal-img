@@ -1,3 +1,4 @@
+from app.comfyui import check_comfyui_health
 from redis.asyncio import Redis
 
 from app.clients import open_postgres_connection
@@ -39,5 +40,10 @@ async def collect_dependency_health(
         health["postgres"] = await _check_postgres(settings)
     except Exception as exc:
         health["postgres"] = f"error:{type(exc).__name__}"
+
+    try:
+        health["comfyui"] = await check_comfyui_health(settings)
+    except Exception as exc:
+        health["comfyui"] = f"error:{type(exc).__name__}"
 
     return health

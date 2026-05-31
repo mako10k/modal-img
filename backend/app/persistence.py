@@ -34,19 +34,21 @@ class PostgresGenerationJobRepository:
                     """
                     insert into generation_jobs (
                         job_id,
-                        workflow_id,
+                        comfyui_prompt_id,
                         status,
+                        error_message,
                         prompt,
                         negative_prompt,
                         width,
                         height,
                         steps
-                    ) values (%s, %s, %s, %s, %s, %s, %s, %s)
+                    ) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         record.job_id,
-                        record.workflow_id,
+                        record.comfyui_prompt_id,
                         record.status,
+                        record.error_message,
                         record.prompt,
                         record.negative_prompt,
                         record.width,
@@ -54,6 +56,93 @@ class PostgresGenerationJobRepository:
                         record.steps,
                     ),
                 )
+
+            await connection.commit()
+        finally:
+            await connection.close()
+
+    async def mark_job_queued(
+        self,
+        job_id: str,
+        comfyui_prompt_id: str,
+    ) -> None:
+        await self._execute_status_update(
+            """
+            update generation_jobs
+            set comfyui_prompt_id = %s,
+                status = %s,
+                error_message = null,
+                updated_at = now()
+            where job_id = %s
+            """,
+            (comfyui_prompt_id, "queued", job_id),
+        )
+
+    async def mark_job_submission_failed(
+        self,
+        job_id: str,
+        error_message: str,
+    ) -> None:
+        await self._execute_status_update(
+            """
+            update generation_jobs
+            set status = %s,
+                error_message = %s,
+                updated_at = now()
+            where job_id = %s
+            """,
+            ("submission_failed", error_message, job_id),
+        )
+
+    async def mark_job_queue_publish_failed(
+        self,
+        job_id: str,
+        error_message: str,
+    ) -> None:
+        await self._execute_status_update(
+            """
+            update generation_jobs
+            set status = %s,
+                error_message = %s,
+                updated_at = now()
+            where job_id = %s
+            """,
+            ("queue_publish_failed", error_message, job_id),
+        )
+
+    async def mark_job_queue_state_update_failed(
+        self,
+        job_id: str,
+        comfyui_prompt_id: str,
+        error_message: str,
+    ) -> None:
+        await self._execute_status_update(
+            """
+            update generation_jobs
+            set comfyui_prompt_id = %s,
+                status = %s,
+                error_message = %s,
+                updated_at = now()
+            where job_id = %s
+            """,
+            (comfyui_prompt_id, "submitting", error_message, job_id),
+        )
+
+    async def _execute_status_update(
+        self,
+        statement: str,
+        params: tuple[object, ...],
+    ) -> None:
+        connection = await self._connector(self._settings)
+
+        try:
+            async with connection.cursor() as cursor:
+                await cursor.execute(statement, params)
+                if cursor.rowcount != 1:
+                    raise RuntimeError(
+                        "generation_jobs row update did not affect "
+                        "exactly one row"
+                    )
 
             await connection.commit()
         finally:
@@ -68,5 +157,5 @@ class RedisGenerationQueuePublisher:
     async def publish_job_requested(self, record: GenerationJobRecord) -> None:
         await self._redis_client.rpush(
             self._queue_key,
-            record.model_dump_json(),
+            record.model_dump_json(exclude_none=True),
         )

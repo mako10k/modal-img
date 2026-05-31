@@ -15,10 +15,45 @@ class FakeGateway:
 
 class FakeRepository:
     def __init__(self):
-        self.records: list[GenerationJobRecord] = []
+        self.created_records: list[GenerationJobRecord] = []
+        self.queued: list[tuple[str, str]] = []
+        self.failed: list[tuple[str, str]] = []
+        self.queue_publish_failed: list[tuple[str, str]] = []
+        self.queue_state_update_failed: list[tuple[str, str, str]] = []
 
     async def create_job(self, record: GenerationJobRecord) -> None:
-        self.records.append(record)
+        self.created_records.append(record)
+
+    async def mark_job_queued(
+        self,
+        job_id: str,
+        comfyui_prompt_id: str,
+    ) -> None:
+        self.queued.append((job_id, comfyui_prompt_id))
+
+    async def mark_job_submission_failed(
+        self,
+        job_id: str,
+        error_message: str,
+    ) -> None:
+        self.failed.append((job_id, error_message))
+
+    async def mark_job_queue_publish_failed(
+        self,
+        job_id: str,
+        error_message: str,
+    ) -> None:
+        self.queue_publish_failed.append((job_id, error_message))
+
+    async def mark_job_queue_state_update_failed(
+        self,
+        job_id: str,
+        comfyui_prompt_id: str,
+        error_message: str,
+    ) -> None:
+        self.queue_state_update_failed.append(
+            (job_id, comfyui_prompt_id, error_message)
+        )
 
 
 class FakeQueuePublisher:
@@ -50,9 +85,18 @@ def test_generation_service_persists_job_and_publishes_queue_message() -> None:
         )
     )
 
-    assert response.status == "accepted"
-    assert len(repository.records) == 1
+    assert response.status == "queued"
+    assert len(repository.created_records) == 1
+    assert repository.created_records[0].status == "submitting"
+    assert repository.created_records[0].comfyui_prompt_id is None
+    assert repository.queued == [(response.job_id, "workflow-redis-postgres")]
+    assert repository.failed == []
+    assert repository.queue_publish_failed == []
+    assert repository.queue_state_update_failed == []
     assert len(queue_publisher.records) == 1
-    assert repository.records[0] == queue_publisher.records[0]
-    assert repository.records[0].workflow_id == "workflow-redis-postgres"
-    assert repository.records[0].prompt == "cinematic city skyline"
+    assert (
+        queue_publisher.records[0].comfyui_prompt_id
+        == "workflow-redis-postgres"
+    )
+    assert queue_publisher.records[0].status == "queued"
+    assert queue_publisher.records[0].prompt == "cinematic city skyline"

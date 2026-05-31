@@ -3,6 +3,10 @@ from app.settings import get_settings, load_settings_from_env
 
 def test_settings_defaults(monkeypatch) -> None:
     monkeypatch.delenv("MODAL_IMG_APP_ENV", raising=False)
+    monkeypatch.delenv("MODAL_IMG_COMFYUI_BASE_URL", raising=False)
+    monkeypatch.delenv("MODAL_IMG_COMFYUI_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("MODAL_IMG_COMFYUI_CHECKPOINT", raising=False)
+    monkeypatch.delenv("MODAL_IMG_COMFYUI_OUTPUT_PREFIX", raising=False)
     monkeypatch.delenv("MODAL_IMG_REDIS_URL", raising=False)
     monkeypatch.delenv("MODAL_IMG_POSTGRES_DSN", raising=False)
     monkeypatch.delenv("MODAL_IMG_GENERATION_QUEUE_KEY", raising=False)
@@ -11,6 +15,10 @@ def test_settings_defaults(monkeypatch) -> None:
     settings = load_settings_from_env()
 
     assert settings.app_env == "development"
+    assert settings.comfyui_base_url == "http://127.0.0.1:8188"
+    assert settings.comfyui_timeout_seconds == 30.0
+    assert settings.comfyui_checkpoint == "sd_xl_base_1.0.safetensors"
+    assert settings.comfyui_output_prefix == "modal-img"
     assert settings.redis_url == "redis://127.0.0.1:6379/0"
     assert (
         settings.postgres_dsn
@@ -22,6 +30,16 @@ def test_settings_defaults(monkeypatch) -> None:
 
 def test_settings_read_env_overrides(monkeypatch) -> None:
     monkeypatch.setenv("MODAL_IMG_APP_ENV", "test")
+    monkeypatch.setenv(
+        "MODAL_IMG_COMFYUI_BASE_URL",
+        "http://comfyui.internal:8188",
+    )
+    monkeypatch.setenv("MODAL_IMG_COMFYUI_TIMEOUT_SECONDS", "45.5")
+    monkeypatch.setenv(
+        "MODAL_IMG_COMFYUI_CHECKPOINT",
+        "quality-model.safetensors",
+    )
+    monkeypatch.setenv("MODAL_IMG_COMFYUI_OUTPUT_PREFIX", "modal-img-test")
     monkeypatch.setenv("MODAL_IMG_REDIS_URL", "redis://redis.internal:6380/2")
     monkeypatch.setenv(
         "MODAL_IMG_POSTGRES_DSN",
@@ -39,6 +57,10 @@ def test_settings_read_env_overrides(monkeypatch) -> None:
     settings = load_settings_from_env()
 
     assert settings.app_env == "test"
+    assert settings.comfyui_base_url == "http://comfyui.internal:8188"
+    assert settings.comfyui_timeout_seconds == 45.5
+    assert settings.comfyui_checkpoint == "quality-model.safetensors"
+    assert settings.comfyui_output_prefix == "modal-img-test"
     assert settings.redis_url == "redis://redis.internal:6380/2"
     assert (
         settings.postgres_dsn

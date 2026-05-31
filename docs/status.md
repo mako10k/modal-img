@@ -12,6 +12,8 @@
 - 生成ジョブ永続化の方針文書と persistence 境界を追加済み
 - PostgreSQL job insert と Redis queue push の実装を追加済み
 - コードレビュー運用を custom review agent 前提で定義済み
+- ComfyUI 実クライアントと submission state transition を追加済み
+- ComfyUI health dependency check と generation_jobs 初期化 / upgrade 手順を追加済み
 
 ## 完了した内容
 
@@ -42,13 +44,24 @@
 - Redis queue publisher 実装を追加
 - generation service を実クライアントで配線
 - review workflow を AGENT.md と custom review agent に追加
+- ComfyUI `/prompt` gateway を追加
+- ComfyUI prompt graph 生成を追加
+- `submitting -> queued / submission_failed / queue_publish_failed` の状態遷移を追加
+- gateway と失敗時 API 応答のテストを追加
+- 外部実行系の識別子を `comfyui_prompt_id` に統一
+- health endpoint に ComfyUI dependency check を追加
+- generation_jobs 初期化 SQL を追加
+- generation_jobs 既存テーブル向け upgrade SQL を追加
+- queued 更新失敗時も `comfyui_prompt_id` を保持する再整合経路を追加
+- settings から workflow 配線されることを固定するテストを追加
 
 ## 残課題
 
-- 画像生成ジョブの永続化と状態管理を設計する
-- ComfyUI 実クライアントを gateway へ組み込む
 - ジョブ状態取得 API と状態遷移を追加する
+- ComfyUI 実行完了後の結果取り込みを追加する
+- 部分成功ジョブの再整合方針と重複送信回避を追加する
+- API failure detail と永続化状態の整理を継続する
 
 ## 次回作業候補
 
-- ComfyUI 実クライアントを gateway に接続し、失敗時の状態遷移を定義する
+- ジョブ状態取得 API と ComfyUI 実行完了後の状態反映を追加し、部分成功ジョブの再整合方針を固定する
