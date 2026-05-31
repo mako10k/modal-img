@@ -9,6 +9,8 @@ description = "Minimal backend scaffold for modal-img"
 requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115.12,<0.116",
+  "psycopg[binary]>=3.2.9,<3.3",
+  "redis>=5.2,<5.3",
 ]
 
 [project.optional-dependencies]

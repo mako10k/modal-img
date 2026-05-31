@@ -9,6 +9,7 @@
 - React + Vite の最小画面を提供する
 - backend テストと frontend build を開発の最低ラインにする
 - 軽量環境では frontend を静的配信前提で運用する
+- Redis / PostgreSQL の接続ファクトリと依存ヘルスチェックを提供する
 
 ## ディレクトリ構成
 
@@ -35,6 +36,9 @@ backend 設定は backend/.env.example の環境変数名に合わせる。
 - MODAL_IMG_POSTGRES_DSN: PostgreSQL 接続先
 - MODAL_IMG_FRONTEND_ORIGIN: frontend の公開 origin
 - MODAL_IMG_FRONTEND_MODE: lightweight 環境では static を使う
+
+health endpoint は Redis の `PING` と PostgreSQL の `SELECT 1` を実行し、依存状態を返す。
+ローカルで依存サービスが起動していない場合は `degraded` を返す前提とする。
 
 ### frontend
 

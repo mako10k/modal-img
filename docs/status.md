@@ -7,6 +7,7 @@
 - backend テストと frontend build を通した初期状態
 - Redis / PostgreSQL の設定モデルと環境変数名を定義済み
 - frontend は軽量環境で静的配信前提の起動方針を採用
+- Redis / PostgreSQL の接続ファクトリと依存ヘルスチェックを追加済み
 
 ## 完了した内容
 
@@ -22,12 +23,16 @@
 - Redis / PostgreSQL / frontend 配信方針の設定モデルを追加
 - backend の設定テストを追加
 - 軽量環境向け frontend serve:lite を追加
+- Redis 接続ファクトリを追加
+- PostgreSQL 接続ファクトリを追加
+- health endpoint に依存ヘルスチェックを追加
+- 接続層とヘルスチェックのテストを追加
 
 ## 残課題
 
 - ComfyUI 連携の設計と最小実装を行う
 - 画像生成ジョブの永続化と状態管理を設計する
-- Redis と PostgreSQL の実接続クライアント実装を追加する
+- Redis / PostgreSQL の接続をジョブ実行経路へ組み込む
 
 ## 次回作業候補
 
