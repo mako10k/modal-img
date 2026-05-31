@@ -9,12 +9,13 @@
 - PostgreSQL: ジョブの正本を保持する
 - Redis: 新規ジョブ受付をワーカーへ通知する
 - API: 先に `submitting` 状態を保存し、ComfyUI 成功時に `queued` へ更新して Redis に通知する
+- API: 初期保存自体が失敗した場合は `persistence_failed` を返し、ComfyUI には送信しない
 - API: ComfyUI 失敗時は `submission_failed` へ更新し、Redis 通知は行わない
 - API: Redis 通知失敗時は `queue_publish_failed` へ更新する
 - API: queued への状態更新自体が失敗した場合、job は `submitting` のまま残しつつ `comfyui_prompt_id` と error detail を保持し、API は 502 を返す
 - API: failure 状態への更新自体が失敗した場合も API は 502 を返し、error detail に state update error を含める
 
-`queue_state_update_failed` は永続化状態ではなく、queued 更新失敗を伝える API error detail の分類として扱う。
+`persistence_failed` と `queue_state_update_failed` は永続化状態ではなく、API error detail の分類として扱う。
 
 ## 現在の責務境界
 
@@ -41,6 +42,7 @@
 ## 今回の実装範囲
 
 - generation service が `submitting -> queued / submission_failed / queue_publish_failed` を管理する
+- generation service が初期保存失敗を `persistence_failed` として返す
 - PostgreSQL repository が insert と状態更新を行う
 - Redis queue publisher が `queued` ジョブだけを通知する
 - `queued` 更新失敗は再整合対象として `submitting` のまま扱い、`comfyui_prompt_id` と error detail を保持する

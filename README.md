@@ -7,6 +7,7 @@
 - FastAPI の最小 API を提供する
 - Modal から FastAPI を公開できる入口を持つ
 - React + Vite の最小画面を提供する
+- React + Vite の UI から health 確認と生成依頼送信を試せる
 - backend テストと frontend build を開発の最低ラインにする
 - 軽量環境では frontend を静的配信前提で運用する
 - Redis / PostgreSQL の接続ファクトリと依存ヘルスチェックを提供する
@@ -31,6 +32,7 @@ python3.12 -m venv ../.venv
 . ../.venv/bin/activate
 pip install -e .[dev,modal]
 pytest
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 PostgreSQL を使う前に sql/init_generation_jobs.sql を適用して generation_jobs テーブルを作成する。
@@ -41,9 +43,13 @@ backend 設定は backend/.env.example の環境変数名に合わせる。
 - MODAL_IMG_APP_ENV: 実行環境名
 - MODAL_IMG_REDIS_URL: Redis 接続先
 - MODAL_IMG_POSTGRES_DSN: PostgreSQL 接続先
+- MODAL_IMG_POSTGRES_CONNECT_TIMEOUT_SECONDS: PostgreSQL 接続 timeout 秒
+- MODAL_IMG_REDIS_TIMEOUT_SECONDS: Redis 接続 / 読み書き timeout 秒
 - MODAL_IMG_GENERATION_QUEUE_KEY: Redis のジョブ通知キュー名
 - MODAL_IMG_COMFYUI_BASE_URL: ComfyUI API の base URL
 - MODAL_IMG_COMFYUI_TIMEOUT_SECONDS: ComfyUI API 呼び出し timeout 秒
+- MODAL_IMG_COMFYUI_HEALTH_TIMEOUT_SECONDS: ComfyUI health probe の timeout 秒
+- MODAL_IMG_DEPENDENCY_HEALTH_TIMEOUT_SECONDS: health endpoint の各依存 probe に掛ける timeout 秒
 - MODAL_IMG_COMFYUI_CHECKPOINT: 生成に使う checkpoint 名
 - MODAL_IMG_COMFYUI_OUTPUT_PREFIX: ComfyUI 保存画像の prefix
 - MODAL_IMG_FRONTEND_ORIGIN: frontend の公開 origin
@@ -54,7 +60,7 @@ health endpoint は Redis の `PING`、PostgreSQL の `SELECT 1`、ComfyUI の `
 生成 API の入口は `POST /v1/generations` で、現在は ComfyUI `/prompt` に workflow を送信する。
 永続化は PostgreSQL を正本、Redis を通知経路として扱い、状態は `submitting -> queued / submission_failed / queue_publish_failed` で管理する。
 queued への状態更新自体が失敗した場合は、job を `submitting` のまま残しつつ `comfyui_prompt_id` と error detail を保持して 502 を返す。
-API の error detail では `submission_failed` / `queue_publish_failed` / `queue_state_update_failed` を返し、`queue_state_update_failed` は永続化状態ではなく API 側の失敗分類として扱う。
+API の error detail では `persistence_failed` / `submission_failed` / `queue_publish_failed` / `queue_state_update_failed` を返し、`queue_state_update_failed` は永続化状態ではなく API 側の失敗分類として扱う。
 外部実行系の識別子は `workflow_id` ではなく `comfyui_prompt_id` として扱う。
 backend は `MODAL_IMG_FRONTEND_ORIGIN` を CORS 許可 origin として使う。
 
@@ -63,8 +69,11 @@ backend は `MODAL_IMG_FRONTEND_ORIGIN` を CORS 許可 origin として使う�
 ```bash
 cd frontend
 npm install
+npm test
 npm run build
 npm run serve:lite
 ```
 
+frontend 設定は frontend/.env.example を基準にし、既定では `VITE_API_BASE_URL=http://127.0.0.1:8000` を使う。
 軽量環境では dev server 常駐ではなく、build 済みアセットを vite preview で配信する前提とする。
+frontend の既定ポートは `http://127.0.0.1:43173` とし、backend の `MODAL_IMG_FRONTEND_ORIGIN` もこれに合わせる。

@@ -14,6 +14,11 @@
 - コードレビュー運用を custom review agent 前提で定義済み
 - ComfyUI 実クライアントと submission state transition を追加済み
 - ComfyUI health dependency check と generation_jobs 初期化 / upgrade 手順を追加済み
+- frontend から health 確認と生成依頼送信を試せる UI を追加済み
+- health 用 ComfyUI timeout を生成 timeout から分離済み
+- health endpoint の各依存 probe timeout を短縮済み
+- PostgreSQL / Redis の接続 timeout を追加済み
+- frontend の health / submit UI テストを追加済み
 
 ## 完了した内容
 
@@ -54,6 +59,11 @@
 - generation_jobs 既存テーブル向け upgrade SQL を追加
 - queued 更新失敗時も `comfyui_prompt_id` を保持する再整合経路を追加
 - settings から workflow 配線されることを固定するテストを追加
+- frontend の接続先入力、health 表示、生成依頼フォームを追加
+- frontend の既定ポートを 43173 へ変更
+- health 用 ComfyUI timeout 設定を追加
+- dependency health timeout 設定を追加
+- PostgreSQL / Redis timeout 設定を追加
 
 ## 残課題
 

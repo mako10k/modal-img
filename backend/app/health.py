@@ -1,3 +1,5 @@
+import asyncio
+
 from app.comfyui import check_comfyui_health
 from redis.asyncio import Redis
 
@@ -29,20 +31,27 @@ async def collect_dependency_health(
     settings: Settings,
 ) -> dict[str, str]:
     health: dict[str, str] = {}
+    timeout = settings.dependency_health_timeout_seconds
 
     try:
-        await redis_client.ping()
+        await asyncio.wait_for(redis_client.ping(), timeout=timeout)
         health["redis"] = "ok"
     except Exception as exc:
         health["redis"] = f"error:{type(exc).__name__}"
 
     try:
-        health["postgres"] = await _check_postgres(settings)
+        health["postgres"] = await asyncio.wait_for(
+            _check_postgres(settings),
+            timeout=timeout,
+        )
     except Exception as exc:
         health["postgres"] = f"error:{type(exc).__name__}"
 
     try:
-        health["comfyui"] = await check_comfyui_health(settings)
+        health["comfyui"] = await asyncio.wait_for(
+            check_comfyui_health(settings),
+            timeout=timeout,
+        )
     except Exception as exc:
         health["comfyui"] = f"error:{type(exc).__name__}"
 

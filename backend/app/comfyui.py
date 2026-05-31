@@ -50,7 +50,7 @@ async def check_comfyui_health(
     if client_factory is None:
         client = httpx.AsyncClient(
             base_url=settings.comfyui_base_url,
-            timeout=settings.comfyui_timeout_seconds,
+            timeout=settings.comfyui_health_timeout_seconds,
         )
         should_close = True
     else:

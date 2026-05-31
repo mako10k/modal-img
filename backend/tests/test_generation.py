@@ -32,10 +32,13 @@ class FakeRepository:
         self.failed = None
         self.queue_publish_failed = None
         self.queue_state_update_failed = None
+        self.create_error = None
         self.queued_error = None
         self.queue_state_update_failed_error = None
 
     async def create_job(self, record) -> None:
+        if self.create_error is not None:
+            raise self.create_error
         self.created = record
 
     async def mark_job_queued(
@@ -222,6 +225,45 @@ def test_create_generation_endpoint_returns_502_on_submission_failure(
     }
 
 
+def test_create_generation_endpoint_returns_502_on_persistence_failure(
+    monkeypatch,
+) -> None:
+    class FakeGenerationService:
+        async def submit_text_to_image(self, request: GenerationRequest):
+            assert request.prompt == "studio lighting"
+            raise GenerationSubmissionError(
+                "job-499",
+                "persistence_failed",
+                "ConnectionTimeout: connection timeout expired",
+            )
+
+    monkeypatch.setattr(
+        main_module,
+        "create_generation_service_with_clients",
+        lambda _settings, _redis_client: FakeGenerationService(),
+    )
+
+    with TestClient(main_module.app) as client:
+        response = client.post(
+            "/v1/generations",
+            json={
+                "prompt": "studio lighting",
+                "width": 1024,
+                "height": 1024,
+                "steps": 28,
+            },
+        )
+
+    assert response.status_code == 502
+    assert response.json() == {
+        "detail": {
+            "job_id": "job-499",
+            "status": "persistence_failed",
+            "message": "ConnectionTimeout: connection timeout expired",
+        }
+    }
+
+
 def test_create_generation_endpoint_returns_502_on_queue_publish_failure(
     monkeypatch,
 ) -> None:
@@ -325,6 +367,29 @@ def test_generation_service_marks_submission_failed_without_queue_publish(
     )
     assert repository.queued is None
     assert repository.queue_publish_failed is None
+    assert queue_publisher.record is None
+
+
+def test_generation_service_returns_persistence_failure_before_gateway(
+) -> None:
+    repository = FakeRepository()
+    repository.create_error = RuntimeError("postgres unavailable")
+    queue_publisher = FakeQueuePublisher()
+    gateway = FakeGateway()
+    service = GenerationService(gateway, repository, queue_publisher)
+
+    try:
+        run_submit(service)
+    except GenerationSubmissionError as exc:
+        assert exc.status == "persistence_failed"
+        assert str(exc) == "RuntimeError: postgres unavailable"
+    else:
+        raise AssertionError("GenerationSubmissionError was not raised")
+
+    assert repository.created is None
+    assert gateway.workflow is None
+    assert repository.failed is None
+    assert repository.queued is None
     assert queue_publisher.record is None
 
 

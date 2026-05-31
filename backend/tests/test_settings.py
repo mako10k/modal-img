@@ -5,10 +5,23 @@ def test_settings_defaults(monkeypatch) -> None:
     monkeypatch.delenv("MODAL_IMG_APP_ENV", raising=False)
     monkeypatch.delenv("MODAL_IMG_COMFYUI_BASE_URL", raising=False)
     monkeypatch.delenv("MODAL_IMG_COMFYUI_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv(
+        "MODAL_IMG_COMFYUI_HEALTH_TIMEOUT_SECONDS",
+        raising=False,
+    )
+    monkeypatch.delenv(
+        "MODAL_IMG_DEPENDENCY_HEALTH_TIMEOUT_SECONDS",
+        raising=False,
+    )
     monkeypatch.delenv("MODAL_IMG_COMFYUI_CHECKPOINT", raising=False)
     monkeypatch.delenv("MODAL_IMG_COMFYUI_OUTPUT_PREFIX", raising=False)
     monkeypatch.delenv("MODAL_IMG_REDIS_URL", raising=False)
     monkeypatch.delenv("MODAL_IMG_POSTGRES_DSN", raising=False)
+    monkeypatch.delenv(
+        "MODAL_IMG_POSTGRES_CONNECT_TIMEOUT_SECONDS",
+        raising=False,
+    )
+    monkeypatch.delenv("MODAL_IMG_REDIS_TIMEOUT_SECONDS", raising=False)
     monkeypatch.delenv("MODAL_IMG_GENERATION_QUEUE_KEY", raising=False)
     monkeypatch.delenv("MODAL_IMG_FRONTEND_ORIGIN", raising=False)
 
@@ -17,6 +30,8 @@ def test_settings_defaults(monkeypatch) -> None:
     assert settings.app_env == "development"
     assert settings.comfyui_base_url == "http://127.0.0.1:8188"
     assert settings.comfyui_timeout_seconds == 30.0
+    assert settings.comfyui_health_timeout_seconds == 2.0
+    assert settings.dependency_health_timeout_seconds == 2.0
     assert settings.comfyui_checkpoint == "sd_xl_base_1.0.safetensors"
     assert settings.comfyui_output_prefix == "modal-img"
     assert settings.redis_url == "redis://127.0.0.1:6379/0"
@@ -24,8 +39,10 @@ def test_settings_defaults(monkeypatch) -> None:
         settings.postgres_dsn
         == "postgresql://modal_img:modal_img@127.0.0.1:5432/modal_img"
     )
+    assert settings.postgres_connect_timeout_seconds == 5.0
+    assert settings.redis_timeout_seconds == 5.0
     assert settings.generation_queue_key == "modal-img:generation-jobs"
-    assert settings.frontend_origin == "http://127.0.0.1:4173"
+    assert settings.frontend_origin == "http://127.0.0.1:43173"
 
 
 def test_settings_read_env_overrides(monkeypatch) -> None:
@@ -35,6 +52,8 @@ def test_settings_read_env_overrides(monkeypatch) -> None:
         "http://comfyui.internal:8188",
     )
     monkeypatch.setenv("MODAL_IMG_COMFYUI_TIMEOUT_SECONDS", "45.5")
+    monkeypatch.setenv("MODAL_IMG_COMFYUI_HEALTH_TIMEOUT_SECONDS", "3.5")
+    monkeypatch.setenv("MODAL_IMG_DEPENDENCY_HEALTH_TIMEOUT_SECONDS", "1.5")
     monkeypatch.setenv(
         "MODAL_IMG_COMFYUI_CHECKPOINT",
         "quality-model.safetensors",
@@ -45,6 +64,11 @@ def test_settings_read_env_overrides(monkeypatch) -> None:
         "MODAL_IMG_POSTGRES_DSN",
         "postgresql://worker:secret@postgres.internal:5433/modal_img_test",
     )
+    monkeypatch.setenv(
+        "MODAL_IMG_POSTGRES_CONNECT_TIMEOUT_SECONDS",
+        "6.5",
+    )
+    monkeypatch.setenv("MODAL_IMG_REDIS_TIMEOUT_SECONDS", "4.5")
     monkeypatch.setenv(
         "MODAL_IMG_GENERATION_QUEUE_KEY",
         "modal-img:test-generation-jobs",
@@ -59,6 +83,8 @@ def test_settings_read_env_overrides(monkeypatch) -> None:
     assert settings.app_env == "test"
     assert settings.comfyui_base_url == "http://comfyui.internal:8188"
     assert settings.comfyui_timeout_seconds == 45.5
+    assert settings.comfyui_health_timeout_seconds == 3.5
+    assert settings.dependency_health_timeout_seconds == 1.5
     assert settings.comfyui_checkpoint == "quality-model.safetensors"
     assert settings.comfyui_output_prefix == "modal-img-test"
     assert settings.redis_url == "redis://redis.internal:6380/2"
@@ -66,6 +92,8 @@ def test_settings_read_env_overrides(monkeypatch) -> None:
         settings.postgres_dsn
         == "postgresql://worker:secret@postgres.internal:5433/modal_img_test"
     )
+    assert settings.postgres_connect_timeout_seconds == 6.5
+    assert settings.redis_timeout_seconds == 4.5
     assert settings.generation_queue_key == "modal-img:test-generation-jobs"
     assert settings.frontend_origin == "http://frontend.internal:8080"
 

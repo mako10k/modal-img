@@ -69,3 +69,36 @@ async def test_check_comfyui_health_uses_system_stats_endpoint() -> None:
 
     assert result == "ok"
     assert fake_client.calls == [("/system_stats", None)]
+
+
+@pytest.mark.anyio
+async def test_check_comfyui_health_uses_health_timeout_setting(
+    monkeypatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class CapturingClient:
+        def __init__(self, base_url: str, timeout: float):
+            captured["base_url"] = base_url
+            captured["timeout"] = timeout
+
+        async def get(self, path: str) -> FakeResponse:
+            captured["path"] = path
+            return FakeResponse({"system": {"status": "ok"}})
+
+        async def aclose(self) -> None:
+            captured["closed"] = True
+
+    monkeypatch.setattr("app.comfyui.httpx.AsyncClient", CapturingClient)
+
+    result = await check_comfyui_health(
+        Settings(comfyui_health_timeout_seconds=3.5),
+    )
+
+    assert result == "ok"
+    assert captured == {
+        "base_url": "http://127.0.0.1:8188",
+        "timeout": 3.5,
+        "path": "/system_stats",
+        "closed": True,
+    }

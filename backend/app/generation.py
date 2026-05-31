@@ -236,7 +236,16 @@ class GenerationService:
             height=request.height,
             steps=request.steps,
         )
-        await self._repository.create_job(record)
+
+        try:
+            await self._repository.create_job(record)
+        except Exception as exc:
+            error_message = f"{type(exc).__name__}: {exc}"
+            raise GenerationSubmissionError(
+                job_id,
+                "persistence_failed",
+                error_message,
+            ) from exc
 
         try:
             workflow = self._workflow_factory(request)

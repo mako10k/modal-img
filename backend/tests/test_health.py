@@ -71,19 +71,19 @@ def test_health_returns_degraded(monkeypatch) -> None:
 
 
 def test_cors_allows_configured_frontend_origin(monkeypatch) -> None:
-    monkeypatch.setenv("MODAL_IMG_FRONTEND_ORIGIN", "http://127.0.0.1:4173")
+    monkeypatch.setenv("MODAL_IMG_FRONTEND_ORIGIN", "http://127.0.0.1:43173")
     get_settings.cache_clear()
 
     with create_test_client() as client:
         response = client.options(
             "/health",
             headers={
-                "Origin": "http://127.0.0.1:4173",
+                "Origin": "http://127.0.0.1:43173",
                 "Access-Control-Request-Method": "GET",
             },
         )
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == (
-        "http://127.0.0.1:4173"
+        "http://127.0.0.1:43173"
     )

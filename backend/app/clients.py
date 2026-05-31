@@ -9,8 +9,13 @@ def create_redis_client(settings: Settings) -> Redis:
         settings.redis_url,
         encoding="utf-8",
         decode_responses=True,
+        socket_connect_timeout=settings.redis_timeout_seconds,
+        socket_timeout=settings.redis_timeout_seconds,
     )
 
 
 async def open_postgres_connection(settings: Settings) -> AsyncConnection:
-    return await AsyncConnection.connect(settings.postgres_dsn)
+    return await AsyncConnection.connect(
+        settings.postgres_dsn,
+        connect_timeout=settings.postgres_connect_timeout_seconds,
+    )
