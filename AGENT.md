@@ -13,6 +13,14 @@
 - Backend: Python 3.12, FastAPI, Modal, ComfyUI, Redis, PostgreSQL
 - Frontend: React, TypeScript, Vite
 
+## 方向性の優先仕様
+
+- 生成実行の責務は Modal 側に置く
+- FastAPI backend は受付、状態管理、永続化、結果参照の入口を担う
+- ComfyUI を使う場合も、原則として Modal 側の実行内部に閉じ込め、backend から生の ComfyUI endpoint を正本の実行先として増築しない
+- backend 直結の ComfyUI gateway や raw `/prompt` 依存は、現時点では暫定 drift として扱い、これを将来方針として正当化しない
+- 実装、fixtures、ローカル起動手順がこの方針と食い違う場合は、実装ではなくこの節を優先する
+
 ## 作業ルール
 
 - 作業前に docs/status.md と docs/backlog.md を読む
@@ -22,6 +30,8 @@
 - 将来機能の先行実装をしない
 - 巨大リファクタをしない
 - 依存関係の逆転を起こさない
+- 生成系の変更や起動作業に入る前に、受付、オーケストレーション、実行の責務分解を明文化し、Modal と ComfyUI の担当を取り違えない
+- 指示書より実装が先に進んでいる場合、その実装を前提として拡張せず、差分をユーザーに確認してから進める
 
 ## レビュー運用
 
@@ -30,12 +40,14 @@
 - レビューでは style より先に整合性、対称性、更新漏れ、テストと文書の追従を確認する
 - Backend の契約変更では API、service、tests、docs の対応関係を確認する
 - Frontend の build や serve 方針を変えた場合は軽量環境前提が README と設定に残っているか確認する
+- 生成実行経路に触れる場合は、Modal が実行責務を持つという優先仕様に反していないかを先に確認する
 - タスク完了時は docs/status.md と必要なら docs/backlog.md を更新してからコミットする
 
 ## レビュー観点
 
 - settings と .env.example と README が一致しているか
 - API 入口と service 境界と docs が一致しているか
+- API 入口、Modal 実行境界、内部生成エンジンの責務が混線していないか
 - Backend の変更に対して pytest が更新されているか
 - Frontend の変更に対して build 前提と軽量配信前提が崩れていないか
 

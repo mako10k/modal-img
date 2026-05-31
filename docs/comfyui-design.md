@@ -1,8 +1,24 @@
 # ComfyUI integration
 
+## 方向性の訂正
+
+- 正本のアーキテクチャでは、画像生成の実行責務は Modal 側に置く
+- ComfyUI は backend が直接運用責務を持つ外部実行系ではなく、採用する場合も Modal 実行内部のエンジンとして扱う
+- backend から raw ComfyUI endpoint を直接叩く現在の実装は暫定 drift であり、これを将来方針として拡張しない
+- この文書の `ComfySubmissionGateway` 記述は現状実装の記録であり、優先仕様ではない
+
 ## 目的
 
-ComfyUI 連携の責務境界を先に固定し、永続化やジョブワーカーの実装を後続タスクへ分離する。
+現状の direct ComfyUI 実装 drift を棚卸しし、Modal が生成実行責務を持つ方向へ戻すための差分を明確にする。
+
+## 正本の責務境界
+
+- API 入口: FastAPI backend
+- 実行オーケストレーション: Modal
+- 画像生成エンジン: Modal 内部に閉じ込めた実装詳細
+- 永続化責務: `GenerationJobRepository` と `GenerationQueuePublisher`
+
+backend から raw ComfyUI `/prompt` を叩く経路は、この正本境界と食い違うため、今後の新規開発では増築対象にしない。
 
 ## 現在の境界
 
@@ -28,11 +44,13 @@ ComfyUI 連携の責務境界を先に固定し、永続化やジョブワーカ
 
 `persistence_failed` と `queue_state_update_failed` は永続化状態ではなく、API error detail の分類として扱う。
 
-## 今回の実装方針
+## 現状実装の記録
 
 - ComfyUI への送信は `httpx` ベースの gateway adapter で行う
 - workflow は ComfyUI prompt graph を直接生成する
-- API、gateway、状態遷移の契約をテストで固定する
+- API、gateway、状態遷移の契約を現状実装としてテストで固定している
+
+この節は backend-direct ComfyUI 実装の記録であり、将来方針ではない。
 - 画像取得やジョブ状態照会は後続タスクへ分離する
 
 ## 現在の実装対応
@@ -43,3 +61,10 @@ ComfyUI 連携の責務境界を先に固定し、永続化やジョブワーカ
 - `backend/tests/test_generation.py`: 入口と workflow / 状態遷移のテスト
 - `backend/tests/test_comfyui.py`: gateway のテスト
 - `docs/persistence-design.md`: 永続化方針
+
+## 次の修正方針
+
+- `GenerationService` の実行委譲先を direct ComfyUI gateway ではなく Modal 実行 adapter へ置き換える
+- backend の health / settings / docs から raw ComfyUI 常駐前提を外す
+- ComfyUI 固有の識別子や health check は、Modal 内部実装へ押し戻せるかを先に検討する
+- backend の後続機能追加は、Modal 実行境界への移行完了まで direct ComfyUI 経路を深掘りしない

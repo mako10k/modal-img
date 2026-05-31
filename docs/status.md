@@ -19,6 +19,7 @@
 - health endpoint の各依存 probe timeout を短縮済み
 - PostgreSQL / Redis の接続 timeout を追加済み
 - frontend の health / submit UI テストを追加済み
+- 生成実行責務の方向性が drift しており、Modal 正本へ戻す是正が最優先
 
 ## 完了した内容
 
@@ -64,14 +65,19 @@
 - health 用 ComfyUI timeout 設定を追加
 - dependency health timeout 設定を追加
 - PostgreSQL / Redis timeout 設定を追加
+- 生成実行責務の優先仕様を AGENT / README / 設計文書へ明記
 
 ## 残課題
 
+- 生成実行責務を Modal 正本へ戻し、backend 直結 ComfyUI 前提を解消する
 - ジョブ状態取得 API と状態遷移を追加する
-- ComfyUI 実行完了後の結果取り込みを追加する
+- Modal 実行完了後の結果取り込みへ置き換える
 - 部分成功ジョブの再整合方針と重複送信回避を追加する
+- ComfyUI 固有識別子を backend 正本契約から切り離す移行方針を追加する
 - API failure detail と永続化状態の整理を継続する
 
 ## 次回作業候補
 
-- ジョブ状態取得 API と ComfyUI 実行完了後の状態反映を追加し、部分成功ジョブの再整合方針を固定する
+- 生成 API の実行委譲先を Modal adapter へ差し替える設計に更新し、settings / health / tests の raw ComfyUI 前提を縮退させる
+- ジョブ状態取得 API と Modal 実行完了後の状態反映を追加し、部分成功ジョブの再整合方針を固定する
+- `comfyui_prompt_id` を互換項目へ降格し、抽象実行 ID へ寄せる移行条件を決める
