@@ -13,6 +13,15 @@ type GenerationAccepted = {
   execution_id: string;
 };
 
+type GenerationStatus = {
+  job_id: string;
+  status: string;
+  execution_id: string | null;
+  error_message: string | null;
+  result_image_data_url: string | null;
+  result_mime_type: string | null;
+};
+
 type FailureDetail = {
   job_id?: string;
   status?: string;
@@ -40,8 +49,14 @@ const INITIAL_FORM: GenerationForm = {
   negativePrompt: "blurry, low contrast, malformed hands",
   width: "1024",
   height: "1024",
-  steps: "30",
+  steps: "4",
 };
+
+const TERMINAL_JOB_STATUSES = new Set([
+  "completed",
+  "execution_failed",
+  "submission_failed",
+]);
 
 function normalizeBaseUrl(value: string): string {
   return value.trim().replace(/\/$/, "");
@@ -69,6 +84,9 @@ function App() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submission, setSubmission] = useState<GenerationAccepted | null>(null);
   const [submitError, setSubmitError] = useState<FailureDetail | null>(null);
+  const [generationStatus, setGenerationStatus] =
+    useState<GenerationStatus | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
 
   const normalizedApiBaseUrl = useMemo(
     () => normalizeBaseUrl(apiBaseUrl),
@@ -105,6 +123,27 @@ function App() {
     void refreshHealth();
   }, []);
 
+  useEffect(() => {
+    if (submission === null) {
+      return;
+    }
+
+    if (
+      generationStatus !== null &&
+      TERMINAL_JOB_STATUSES.has(generationStatus.status)
+    ) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void refreshGenerationStatus(submission.job_id);
+    }, 2500);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [generationStatus?.status, submission, normalizedApiBaseUrl]);
+
   function handleFieldChange(
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) {
@@ -117,6 +156,8 @@ function App() {
     setSubmitLoading(true);
     setSubmission(null);
     setSubmitError(null);
+    setGenerationStatus(null);
+    setStatusError(null);
 
     const payload = {
       prompt: form.prompt,
@@ -138,13 +179,44 @@ function App() {
 
       if (!response.ok) {
         const detail = "detail" in data ? data.detail : undefined;
+        if (
+          (detail?.status === "queue_publish_failed" ||
+            detail?.status === "queue_state_update_failed") &&
+          detail.job_id &&
+          detail.execution_id
+        ) {
+          setSubmission({
+            job_id: detail.job_id,
+            status: detail.status,
+            execution_id: detail.execution_id,
+          });
+          setGenerationStatus({
+            job_id: detail.job_id,
+            status: detail.status,
+            execution_id: detail.execution_id,
+            error_message: detail.message ?? null,
+            result_image_data_url: null,
+            result_mime_type: null,
+          });
+          void refreshGenerationStatus(detail.job_id);
+        }
         setSubmitError(
           detail ?? { message: `request failed: ${response.status}` },
         );
         return;
       }
 
-      setSubmission(data as GenerationAccepted);
+      const accepted = data as GenerationAccepted;
+      setSubmission(accepted);
+      setGenerationStatus({
+        job_id: accepted.job_id,
+        status: accepted.status,
+        execution_id: accepted.execution_id,
+        error_message: null,
+        result_image_data_url: null,
+        result_mime_type: null,
+      });
+      void refreshGenerationStatus(accepted.job_id);
     } catch (error) {
       setSubmitError({
         message:
@@ -157,14 +229,39 @@ function App() {
     }
   }
 
+  async function refreshGenerationStatus(jobId: string) {
+    setStatusError(null);
+
+    try {
+      const response = await fetch(
+        `${normalizedApiBaseUrl}/v1/generations/${jobId}`,
+      );
+      if (!response.ok) {
+        throw new Error(`status request failed: ${response.status}`);
+      }
+
+      const data = (await response.json()) as GenerationStatus;
+      setGenerationStatus(data);
+      if (data.status === "completed") {
+        setSubmitError(null);
+      }
+    } catch (error) {
+      setStatusError(
+        error instanceof Error
+          ? error.message
+          : "status request failed unexpectedly",
+      );
+    }
+  }
+
   return (
     <main className="page">
       <section className="hero">
         <p className="eyebrow">modal-img</p>
         <h1>Quality-first execution queue console</h1>
         <p className="lead">
-          health 確認と Modal への enqueue を、同じ画面からそのまま試せる最小 UI。
-          いまの MVP は execution_id の可視化までを対象にしています。
+          health 確認、生成依頼、結果確認までを同じ画面で追える開発 UI。
+          Modal 側の実行結果が返れば、そのまま preview まで確認できます。
         </p>
         <div className="hero-strip">
           <span>Backend: FastAPI / Modal</span>
@@ -256,6 +353,7 @@ function App() {
             <label className="field field-full">
               <span>Prompt</span>
               <textarea
+                maxLength={2000}
                 name="prompt"
                 onChange={handleFieldChange}
                 rows={4}
@@ -266,6 +364,7 @@ function App() {
             <label className="field field-full">
               <span>Negative prompt</span>
               <textarea
+                maxLength={2000}
                 name="negativePrompt"
                 onChange={handleFieldChange}
                 rows={3}
@@ -276,8 +375,8 @@ function App() {
             <label className="field">
               <span>Width</span>
               <input
-                min="256"
-                max="2048"
+                min="512"
+                max="1024"
                 name="width"
                 onChange={handleFieldChange}
                 step="64"
@@ -289,8 +388,8 @@ function App() {
             <label className="field">
               <span>Height</span>
               <input
-                min="256"
-                max="2048"
+                min="512"
+                max="1024"
                 name="height"
                 onChange={handleFieldChange}
                 step="64"
@@ -303,7 +402,7 @@ function App() {
               <span>Steps</span>
               <input
                 min="1"
-                max="100"
+                max="4"
                 name="steps"
                 onChange={handleFieldChange}
                 type="number"
@@ -316,6 +415,10 @@ function App() {
                 {submitLoading ? "送信中..." : "生成依頼を送信"}
               </button>
             </div>
+
+            <p className="message message-muted field-full">
+              prompt は 2000 文字まで、width / height は 512-1024 かつ 64 の倍数、steps は 1-4 です。
+            </p>
           </form>
         </article>
 
@@ -344,6 +447,41 @@ function App() {
             </div>
           ) : null}
 
+          {generationStatus !== null ? (
+            <div className="result-block result-status">
+              <div className="result-row">
+                <span>job status</span>
+                <strong>{generationStatus.status}</strong>
+              </div>
+              {generationStatus.execution_id ? (
+                <div className="result-row">
+                  <span>resolved execution_id</span>
+                  <code>{generationStatus.execution_id}</code>
+                </div>
+              ) : null}
+              {generationStatus.error_message ? (
+                <p className="message message-error">
+                  {generationStatus.error_message}
+                </p>
+              ) : null}
+              {generationStatus.result_image_data_url ? (
+                <div className="preview-frame">
+                  <img
+                    alt="Generated preview"
+                    className="preview-image"
+                    src={generationStatus.result_image_data_url}
+                  />
+                </div>
+              ) : (
+                <p className="message message-muted">
+                  {TERMINAL_JOB_STATUSES.has(generationStatus.status)
+                    ? "この job は画像 preview なしで終端状態に到達しました。"
+                    : "生成結果を確認中です。job status をポーリングしています。"}
+                </p>
+              )}
+            </div>
+          ) : null}
+
           {submitError !== null ? (
             <div className="result-block result-error">
               <div className="result-row">
@@ -368,9 +506,15 @@ function App() {
             </div>
           ) : null}
 
-          {submission === null && submitError === null ? (
+          {statusError !== null ? (
+            <p className="message message-error">
+              status 取得失敗: {statusError}
+            </p>
+          ) : null}
+
+          {submission === null && submitError === null && generationStatus === null ? (
             <p className="message message-muted">
-              まず health を見て backend 接続を確認し、そのあと enqueue を送信して execution_id を確認してください。
+              まず health を見て backend 接続を確認し、そのあと生成依頼を送信して execution_id と preview を確認してください。
             </p>
           ) : null}
         </article>

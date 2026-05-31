@@ -45,7 +45,7 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 PostgreSQL を使う前に sql/init_generation_jobs.sql を適用して generation_jobs テーブルを作成する。
-既存の generation_jobs テーブルが旧スキーマの場合は sql/upgrade_generation_jobs.sql を追加で適用し、`workflow_id` から `comfyui_prompt_id` への移行、不足カラムの追加、`comfyui_prompt_id` の nullable 化、旧 `accepted` 状態の `queued` への正規化を行う。
+既存の generation_jobs テーブルが旧スキーマの場合は sql/upgrade_generation_jobs.sql を追加で適用し、`workflow_id` から `comfyui_prompt_id` への移行、不足カラムの追加、`comfyui_prompt_id` の nullable 化、旧 `accepted` 状態の `queued` への正規化を行う。現在の upgrade では結果 preview 保存用の列も追加する。
 
 backend 設定は backend/.env.example の環境変数名に合わせる。
 
@@ -73,14 +73,18 @@ Modal 実行設定が生成受付の正本で、ComfyUI 関連設定は移行中
 health endpoint は Redis の `PING`、PostgreSQL の `SELECT 1`、Modal 実行 function の hydrate による deploy 済み解決確認を行い、依存状態を返す。
 ローカルで依存サービスが起動していない場合は `degraded` を返す前提とする。
 
-生成 API の入口は `POST /v1/generations` で、現状実装では Modal worker の `submit_text_to_image` function に workflow を `spawn` し、受け付け直後の `execution_id` を返す enqueue-only MVP になっている。
+生成 API の入口は `POST /v1/generations` で、Modal worker の `submit_text_to_image` function に workflow を `spawn` し、受け付け直後の `execution_id` を返す。
 永続化は PostgreSQL を正本、Redis を通知経路として扱い、状態は `submitting -> queued / submission_failed / queue_publish_failed` で管理する。
 queued への状態更新自体が失敗した場合は、job を `submitting` のまま残しつつ内部 execution 識別子と error detail を保持して 502 を返す。
 API の error detail では `persistence_failed` / `submission_failed` / `queue_publish_failed` / `queue_state_update_failed` を返し、`queue_state_update_failed` は永続化状態ではなく API 側の失敗分類として扱う。
 API 応答では外部実行系の識別子を `execution_id` として返す。内部永続化では互換のため `comfyui_prompt_id` カラムを当面流用している。
 backend は `MODAL_IMG_FRONTEND_ORIGIN` を CORS 許可 origin として使う。
 
-この MVP はまだ画像生成完了や結果表示までは行わず、backend で組み立てた workflow を Modal worker へ enqueue し、`execution_id` を可視化するところまでを対象とする。現行 worker は workflow を受け付けて metadata を返す enqueue-only 実装であり、画像生成本体と結果保存は次段階の作業とする。
+`GET /v1/generations/{job_id}` は execution_id から Modal function call の結果を取得し、完了時は preview 画像を PostgreSQL に保存して返す。
+
+現行 worker は Modal 上で GPU を使って `stabilityai/sd-turbo` による text-to-image 推論を行い、PNG data URL を返す。これは最終構成ではないが、GPU 実行、状態取得、結果表示の本線を通すための現行デモ実装である。
+`prompt` は 1-2000 文字、`negative_prompt` は 0-2000 文字で受け付ける。
+現行の GPU デモ worker は `width` / `height` を 512-1024 かつ 64 の倍数、`steps` を 1-4 の範囲で受け付ける。
 
 ### frontend
 

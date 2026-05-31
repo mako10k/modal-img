@@ -6,8 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.clients import create_redis_client
 from app.generation import (
     GenerationAccepted,
+    GenerationNotFoundError,
     GenerationRequest,
     GenerationSubmissionError,
+    GenerationStatus,
     create_generation_service_with_clients,
 )
 from app.health import collect_dependency_health
@@ -85,6 +87,25 @@ async def create_generation(
             detail["execution_id"] = exc.execution_id
 
         raise HTTPException(status_code=502, detail=detail) from exc
+
+
+@router.get("/v1/generations/{job_id}")
+async def get_generation(
+    job_id: str,
+    http_request: Request,
+) -> GenerationStatus:
+    generation_service = http_request.app.state.generation_service
+    try:
+        return await generation_service.get_generation_status(job_id)
+    except GenerationNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "job_id": exc.job_id,
+                "status": "not_found",
+                "message": str(exc),
+            },
+        ) from exc
 
 
 app = create_app()

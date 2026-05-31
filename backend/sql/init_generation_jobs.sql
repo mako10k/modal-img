@@ -8,6 +8,9 @@ create table if not exists generation_jobs (
     width integer not null,
     height integer not null,
     steps integer not null,
+    result_image_data_url text,
+    result_mime_type text,
+    completed_at timestamptz,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );

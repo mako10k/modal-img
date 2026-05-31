@@ -18,15 +18,24 @@ from app.settings import (
 class GenerationRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=2000)
     negative_prompt: str | None = Field(default=None, max_length=2000)
-    width: int = Field(default=1024, ge=256, le=2048)
-    height: int = Field(default=1024, ge=256, le=2048)
-    steps: int = Field(default=30, ge=1, le=100)
+    width: int = Field(default=1024, ge=512, le=1024, multiple_of=64)
+    height: int = Field(default=1024, ge=512, le=1024, multiple_of=64)
+    steps: int = Field(default=4, ge=1, le=4)
 
 
 class GenerationAccepted(BaseModel):
     job_id: str
     status: str
     execution_id: str
+
+
+class GenerationStatus(BaseModel):
+    job_id: str
+    status: str
+    execution_id: str | None
+    error_message: str | None = None
+    result_image_data_url: str | None = None
+    result_mime_type: str | None = None
 
 
 class GenerationJobRecord(BaseModel):
@@ -39,10 +48,15 @@ class GenerationJobRecord(BaseModel):
     width: int
     height: int
     steps: int
+    result_image_data_url: str | None = None
+    result_mime_type: str | None = None
 
 
 class ExecutionGateway(Protocol):
     async def enqueue_workflow(self, workflow: dict[str, object]) -> str:
+        pass
+
+    async def get_result(self, execution_id: str) -> dict[str, object] | None:
         pass
 
 
@@ -79,6 +93,24 @@ class GenerationJobRepository(Protocol):
     ) -> None:
         pass
 
+    async def get_job(self, job_id: str) -> GenerationJobRecord | None:
+        pass
+
+    async def mark_job_completed(
+        self,
+        job_id: str,
+        result_image_data_url: str,
+        result_mime_type: str,
+    ) -> None:
+        pass
+
+    async def mark_job_execution_failed(
+        self,
+        job_id: str,
+        error_message: str,
+    ) -> None:
+        pass
+
 
 class GenerationQueuePublisher(Protocol):
     async def publish_job_requested(self, record: GenerationJobRecord) -> None:
@@ -89,6 +121,10 @@ class StubExecutionGateway:
     async def enqueue_workflow(self, workflow: dict[str, object]) -> str:
         _ = workflow
         return "stub-execution"
+
+    async def get_result(self, execution_id: str) -> dict[str, object] | None:
+        _ = execution_id
+        return None
 
 
 class StubGenerationJobRepository:
@@ -123,6 +159,25 @@ class StubGenerationJobRepository:
         error_message: str,
     ) -> None:
         _ = (job_id, comfyui_prompt_id, error_message)
+
+    async def get_job(self, job_id: str) -> GenerationJobRecord | None:
+        _ = job_id
+        return None
+
+    async def mark_job_completed(
+        self,
+        job_id: str,
+        result_image_data_url: str,
+        result_mime_type: str,
+    ) -> None:
+        _ = (job_id, result_image_data_url, result_mime_type)
+
+    async def mark_job_execution_failed(
+        self,
+        job_id: str,
+        error_message: str,
+    ) -> None:
+        _ = (job_id, error_message)
 
 
 class StubGenerationQueuePublisher:
@@ -206,6 +261,12 @@ class GenerationSubmissionError(Exception):
         self.job_id = job_id
         self.status = status
         self.execution_id = execution_id
+
+
+class GenerationNotFoundError(Exception):
+    def __init__(self, job_id: str):
+        super().__init__(f"generation job not found: {job_id}")
+        self.job_id = job_id
 
 
 class GenerationService:
@@ -308,6 +369,72 @@ class GenerationService:
             execution_id=execution_id,
         )
 
+    async def get_generation_status(self, job_id: str) -> GenerationStatus:
+        record = await self._repository.get_job(job_id)
+        if record is None:
+            raise GenerationNotFoundError(job_id)
+
+        execution_id = record.comfyui_prompt_id
+        if execution_id is None:
+            return self._build_generation_status(record)
+
+        if record.status in {
+            "completed",
+            "submission_failed",
+            "execution_failed",
+        }:
+            return self._build_generation_status(record)
+
+        try:
+            result = await self._gateway.get_result(execution_id)
+        except Exception as exc:
+            error_message = f"{type(exc).__name__}: {exc}"
+            await self._repository.mark_job_execution_failed(
+                job_id,
+                error_message,
+            )
+            return self._build_generation_status(
+                record.model_copy(
+                    update={
+                        "status": "execution_failed",
+                        "error_message": error_message,
+                    }
+                )
+            )
+
+        if result is None:
+            return self._build_generation_status(record)
+
+        result_image_data_url = result.get("result_image_data_url")
+        result_mime_type = result.get("result_mime_type")
+        if (
+            not isinstance(result_image_data_url, str)
+            or not result_image_data_url
+        ):
+            raise RuntimeError(
+                "Modal function result missing result_image_data_url"
+            )
+        if not isinstance(result_mime_type, str) or not result_mime_type:
+            raise RuntimeError(
+                "Modal function result missing result_mime_type"
+            )
+
+        await self._repository.mark_job_completed(
+            job_id,
+            result_image_data_url,
+            result_mime_type,
+        )
+        return self._build_generation_status(
+            record.model_copy(
+                update={
+                    "status": "completed",
+                    "error_message": None,
+                    "result_image_data_url": result_image_data_url,
+                    "result_mime_type": result_mime_type,
+                }
+            )
+        )
+
     async def _record_failure_status(
         self,
         recorder,
@@ -345,6 +472,19 @@ class GenerationService:
             )
 
         return error_message
+
+    def _build_generation_status(
+        self,
+        record: GenerationJobRecord,
+    ) -> GenerationStatus:
+        return GenerationStatus(
+            job_id=record.job_id,
+            status=record.status,
+            execution_id=record.comfyui_prompt_id,
+            error_message=record.error_message,
+            result_image_data_url=record.result_image_data_url,
+            result_mime_type=record.result_mime_type,
+        )
 
 
 def create_generation_service() -> GenerationService:

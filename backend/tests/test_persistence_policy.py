@@ -78,9 +78,9 @@ def test_generation_service_persists_job_and_publishes_queue_message() -> None:
             GenerationRequest(
                 prompt="cinematic city skyline",
                 negative_prompt="low contrast",
-                width=1280,
-                height=720,
-                steps=35,
+                width=1024,
+                height=768,
+                steps=4,
             )
         )
     )

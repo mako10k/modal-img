@@ -14,6 +14,10 @@ def resolve_modal_text_to_image_function(settings: Settings):
     )
 
 
+def resolve_modal_function_call(execution_id: str):
+    return modal.functions.FunctionCall.from_id(execution_id)
+
+
 class ModalSubmissionGateway:
     def __init__(
         self,
@@ -36,6 +40,32 @@ class ModalSubmissionGateway:
             raise RuntimeError("Modal function call missing object_id")
 
         return execution_id
+
+    async def get_result(
+        self,
+        execution_id: str,
+        timeout_seconds: float = 0.1,
+        function_call_resolver: Callable[[str], object] = (
+            resolve_modal_function_call
+        ),
+    ) -> dict[str, object] | None:
+        function_call = await asyncio.to_thread(
+            function_call_resolver,
+            execution_id,
+        )
+        getter = getattr(function_call, "get", None)
+        if not callable(getter):
+            raise RuntimeError("Modal function call cannot be resolved")
+
+        try:
+            result = await asyncio.to_thread(getter, timeout_seconds)
+        except TimeoutError:
+            return None
+
+        if not isinstance(result, dict):
+            raise RuntimeError("Modal function result must be a dictionary")
+
+        return result
 
 
 async def check_modal_execution_health(

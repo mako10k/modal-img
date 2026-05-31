@@ -10,6 +10,15 @@ from app.settings import Settings
 class FakeFunctionCall:
     def __init__(self, object_id: str):
         self.object_id = object_id
+        self.result = {
+            "status": "completed",
+            "result_mime_type": "image/png",
+            "result_image_data_url": "data:image/png;base64,abc",
+        }
+
+    def get(self, timeout: float):
+        _ = timeout
+        return self.result
 
 
 class FakeFunction:
@@ -40,6 +49,28 @@ async def test_modal_submission_gateway_spawns_modal_function() -> None:
 
     assert execution_id == "fc-123"
     assert fake_function.calls == [{"4": {"class_type": "Test"}}]
+
+
+@pytest.mark.anyio
+async def test_modal_submission_gateway_fetches_completed_result() -> None:
+    fake_function = FakeFunction()
+    gateway = ModalSubmissionGateway(
+        Settings(),
+        function_resolver=lambda _settings: fake_function,
+    )
+
+    result = await gateway.get_result(
+        "fc-123",
+        function_call_resolver=(
+            lambda _execution_id: FakeFunctionCall("fc-123")
+        ),
+    )
+
+    assert result == {
+        "status": "completed",
+        "result_mime_type": "image/png",
+        "result_image_data_url": "data:image/png;base64,abc",
+    }
 
 
 @pytest.mark.anyio

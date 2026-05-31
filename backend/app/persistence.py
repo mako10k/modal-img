@@ -128,6 +128,89 @@ class PostgresGenerationJobRepository:
             (comfyui_prompt_id, "submitting", error_message, job_id),
         )
 
+    async def get_job(self, job_id: str):
+        connection = await self._connector(self._settings)
+
+        try:
+            async with connection.cursor() as cursor:
+                await cursor.execute(
+                    """
+                    select
+                        job_id,
+                        comfyui_prompt_id,
+                        status,
+                        error_message,
+                        prompt,
+                        negative_prompt,
+                        width,
+                        height,
+                        steps,
+                        result_image_data_url,
+                        result_mime_type
+                    from generation_jobs
+                    where job_id = %s
+                    """,
+                    (job_id,),
+                )
+                row = await cursor.fetchone()
+        finally:
+            await connection.close()
+
+        if row is None:
+            return None
+
+        from app.generation import GenerationJobRecord
+
+        return GenerationJobRecord(
+            job_id=row[0],
+            comfyui_prompt_id=row[1],
+            status=row[2],
+            error_message=row[3],
+            prompt=row[4],
+            negative_prompt=row[5],
+            width=row[6],
+            height=row[7],
+            steps=row[8],
+            result_image_data_url=row[9],
+            result_mime_type=row[10],
+        )
+
+    async def mark_job_completed(
+        self,
+        job_id: str,
+        result_image_data_url: str,
+        result_mime_type: str,
+    ) -> None:
+        await self._execute_status_update(
+            """
+            update generation_jobs
+            set status = %s,
+                error_message = null,
+                result_image_data_url = %s,
+                result_mime_type = %s,
+                completed_at = now(),
+                updated_at = now()
+            where job_id = %s
+            """,
+            ("completed", result_image_data_url, result_mime_type, job_id),
+        )
+
+    async def mark_job_execution_failed(
+        self,
+        job_id: str,
+        error_message: str,
+    ) -> None:
+        await self._execute_status_update(
+            """
+            update generation_jobs
+            set status = %s,
+                error_message = %s,
+                updated_at = now()
+            where job_id = %s
+            """,
+            ("execution_failed", error_message, job_id),
+        )
+
     async def _execute_status_update(
         self,
         statement: str,

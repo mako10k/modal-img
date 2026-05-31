@@ -20,6 +20,9 @@ end $$;
 alter table generation_jobs
     add column if not exists comfyui_prompt_id text,
     add column if not exists error_message text,
+    add column if not exists result_image_data_url text,
+    add column if not exists result_mime_type text,
+    add column if not exists completed_at timestamptz,
     add column if not exists created_at timestamptz not null default now(),
     add column if not exists updated_at timestamptz not null default now();
 

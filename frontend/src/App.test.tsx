@@ -105,6 +105,17 @@ describe("App", () => {
           status: "queued",
           execution_id: "fc-123",
         }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          job_id: "job-2",
+          status: "completed",
+          execution_id: "fc-123",
+          error_message: null,
+          result_image_data_url: "data:image/png;base64,abc",
+          result_mime_type: "image/png",
+        }),
       }) as typeof fetch;
 
     render(<App />);
@@ -114,8 +125,109 @@ describe("App", () => {
       screen.getByRole("button", { name: "生成依頼を送信" }),
     );
 
-    await screen.findByText("queued");
+    await screen.findByText("completed");
     expect(screen.getByText("job-2")).toBeInTheDocument();
-    expect(screen.getByText("fc-123")).toBeInTheDocument();
+    expect(screen.getAllByText("fc-123")).toHaveLength(2);
+    expect(screen.getByAltText("Generated preview")).toBeInTheDocument();
+  });
+
+  it("keeps tracking queue publish failures that already spawned a job", async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: "ok",
+          environment: "development",
+          dependencies: {
+            redis: "ok",
+            postgres: "ok",
+            modal: "ok",
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({
+          detail: {
+            job_id: "job-3",
+            status: "queue_publish_failed",
+            message: "RuntimeError: redis push failed",
+            execution_id: "fc-queue-1",
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          job_id: "job-3",
+          status: "completed",
+          execution_id: "fc-queue-1",
+          error_message: null,
+          result_image_data_url: "data:image/png;base64,abc",
+          result_mime_type: "image/png",
+        }),
+      }) as typeof fetch;
+
+    render(<App />);
+
+    await screen.findByText("development");
+    fireEvent.click(
+      screen.getByRole("button", { name: "生成依頼を送信" }),
+    );
+
+    await screen.findByText("completed");
+    expect(screen.getAllByText("fc-queue-1")).toHaveLength(2);
+    expect(screen.getByAltText("Generated preview")).toBeInTheDocument();
+  });
+
+  it("keeps tracking queue state update failures that already spawned a job", async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: "ok",
+          environment: "development",
+          dependencies: {
+            redis: "ok",
+            postgres: "ok",
+            modal: "ok",
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({
+          detail: {
+            job_id: "job-4",
+            status: "queue_state_update_failed",
+            message: "RuntimeError: postgres update failed",
+            execution_id: "fc-state-1",
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          job_id: "job-4",
+          status: "completed",
+          execution_id: "fc-state-1",
+          error_message: null,
+          result_image_data_url: "data:image/png;base64,abc",
+          result_mime_type: "image/png",
+        }),
+      }) as typeof fetch;
+
+    render(<App />);
+
+    await screen.findByText("development");
+    fireEvent.click(
+      screen.getByRole("button", { name: "生成依頼を送信" }),
+    );
+
+    await screen.findByText("completed");
+    expect(screen.getAllByText("fc-state-1")).toHaveLength(2);
+    expect(screen.getByAltText("Generated preview")).toBeInTheDocument();
   });
 });

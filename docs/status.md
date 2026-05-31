@@ -21,6 +21,7 @@
 - frontend の health / submit UI テストを追加済み
 - 生成実行責務の方向性が drift しており、Modal 正本へ戻す是正が最優先
 - Modal worker へ workflow を `spawn` し、UI で `execution_id` を確認できる MVP を追加済み
+- Modal worker の GPU text-to-image 実行、job status API、preview 表示まで通るデモ経路を追加済み
 
 ## 完了した内容
 
@@ -70,16 +71,24 @@
 - Modal-backed generation MVP を追加し、health dependency を `modal` へ切り替え
 - 公開 API と UI の成功応答を `execution_id` 表示へ切り替え
 - Modal worker への enqueue-only MVP であることを README と UI に明記
+- `GET /v1/generations/{job_id}` を追加し、Modal function call の完了結果を取り込めるようにした
+- generation_jobs に result preview 保存列を追加した
+- Modal worker を GPU 実行の `stabilityai/sd-turbo` ベースへ更新した
+- frontend で job status をポーリングし、生成 preview を表示できるようにした
+- ローカル backend から live Modal worker を叩き、`completed` と preview 取得まで確認した
+- `queue_publish_failed` と `queue_state_update_failed` でも execution_id があれば UI から追跡継続するようにした
+- GPU デモ worker の入力制約を width / height 512-1024 かつ 64 の倍数、steps 1-4 として API / UI / README に明示した
 
 ## 残課題
 
-- ジョブ状態取得 API と状態遷移を追加する
-- Modal 実行完了後の結果取り込みへ置き換える
 - 部分成功ジョブの再整合方針と重複送信回避を追加する
 - ComfyUI 固有識別子を backend 正本契約から切り離す移行方針を追加する
 - API failure detail と永続化状態の整理を継続する
+- 生成 preview を data URL ではなく永続 URL / object storage へ逃がす
+- 実運用モデル、解像度、推論時間の要件に合わせて worker の GPU / model / caching 方針を詰める
 
 ## 次回作業候補
 
-- ジョブ状態取得 API と Modal 実行完了後の状態反映を追加し、部分成功ジョブの再整合方針を固定する
+- preview 保存を object storage 化し、結果参照契約を data URL 依存から外す
 - `comfyui_prompt_id` を互換項目へ降格し、抽象実行 ID へ寄せる移行条件を決める
+- 現行 GPU デモ worker を本番向けモデル選定とキャッシュ戦略へ置き換える

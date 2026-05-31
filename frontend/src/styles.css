@@ -320,6 +320,11 @@ h2 {
   background: rgba(255, 138, 116, 0.08);
 }
 
+.result-status {
+  margin-top: 14px;
+  background: rgba(244, 239, 230, 0.04);
+}
+
 .result-row {
   display: grid;
   gap: 6px;
@@ -339,6 +344,22 @@ code {
   border-radius: 12px;
   background: rgba(10, 9, 8, 0.38);
   color: #f7c68a;
+}
+
+.preview-frame {
+  margin-top: 8px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(244, 239, 230, 0.08);
+  background: rgba(10, 9, 8, 0.44);
+}
+
+.preview-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
 }
 
 @media (max-width: 1080px) {
