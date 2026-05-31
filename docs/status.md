@@ -5,6 +5,8 @@
 - GitHub リポジトリを public で運用開始済み
 - Backend と Frontend の最小開発基盤を作成済み
 - backend テストと frontend build を通した初期状態
+- Redis / PostgreSQL の設定モデルと環境変数名を定義済み
+- frontend は軽量環境で静的配信前提の起動方針を採用
 
 ## 完了した内容
 
@@ -17,13 +19,16 @@
 - React + Vite の最小画面を追加
 - Python 3.12 で backend テストを実行
 - frontend build を実行
+- Redis / PostgreSQL / frontend 配信方針の設定モデルを追加
+- backend の設定テストを追加
+- 軽量環境向け frontend serve:lite を追加
 
 ## 残課題
 
-- Redis と PostgreSQL の設定を導入する
 - ComfyUI 連携の設計と最小実装を行う
 - 画像生成ジョブの永続化と状態管理を設計する
+- Redis と PostgreSQL の実接続クライアント実装を追加する
 
 ## 次回作業候補
 
-- Redis と PostgreSQL の設定方針を固め、backend に設定モデルを追加する
+- ComfyUI 連携の設計を固め、生成ジョブの入口を分離する
