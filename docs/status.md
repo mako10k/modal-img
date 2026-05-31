@@ -8,6 +8,7 @@
 - Redis / PostgreSQL の設定モデルと環境変数名を定義済み
 - frontend は軽量環境で静的配信前提の起動方針を採用
 - Redis / PostgreSQL の接続ファクトリと依存ヘルスチェックを追加済み
+- ComfyUI 連携の設計文書と生成 API 入口を追加済み
 
 ## 完了した内容
 
@@ -27,6 +28,10 @@
 - PostgreSQL 接続ファクトリを追加
 - health endpoint に依存ヘルスチェックを追加
 - 接続層とヘルスチェックのテストを追加
+- ComfyUI 連携の設計文書を追加
+- `POST /v1/generations` の最小入口を追加
+- workflow builder と stub gateway を追加
+- 生成入口のテストを追加
 
 ## 残課題
 
@@ -36,4 +41,4 @@
 
 ## 次回作業候補
 
-- ComfyUI 連携の設計を固め、生成ジョブの入口を分離する
+- 画像生成ジョブの永続化方針を決め、生成 API から PostgreSQL / Redis を利用する
